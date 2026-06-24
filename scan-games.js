@@ -12,18 +12,26 @@ const GAMES_DIR  = process.env.GAMES_DIR || '/mnt/data/games';
 const INDEX_PATH = path.join(__dirname, 'items-index.json');
 
 // ── Language detection ────────────────────────────────────────────────────────
-function detectLang(title = '') {
-  let he = 0, ar = 0, lat = 0;
+// Spanish-specific characters not found in English
+const SPANISH_CHARS = /[ñÑáéíóúüÁÉÍÓÚÜ¿¡]/;
+
+function detectLang(title = '', locale = '') {
+  let he = 0, ar = 0, lat = 0, es = 0;
   for (const ch of title) {
     const c = ch.charCodeAt(0);
     if (c >= 0x0590 && c <= 0x05FF) he++;
     else if (c >= 0x0600 && c <= 0x06FF) ar++;
     else if ((c >= 65 && c <= 90) || (c >= 97 && c <= 122)) lat++;
+    if (SPANISH_CHARS.test(ch)) es++;
   }
   const total = he + ar + lat;
   if (total === 0) return 'unknown';
   if (he / total > 0.3) return 'he';
   if (ar / total > 0.3) return 'ar';
+  // Latin script: check for Spanish-specific characters first
+  if (es > 0) return 'es';
+  // Use locale as tiebreaker between English and Spanish
+  if (locale && locale.startsWith('es')) return 'es';
   return 'en';
 }
 
@@ -90,7 +98,8 @@ for (const folderId of dirs) {
       try { meta = JSON.parse(fs.readFileSync(metaPath, 'utf8')); } catch {}
     }
 
-    const detectedLang = detectLang(data.title);
+    // If meta has a manual lang override, use it; otherwise auto-detect
+    const detectedLang = meta.langOverride || detectLang(data.title, data.locale);
     const issues       = scanSections(data.sections);
 
     // Check missing local files referenced in sections
@@ -116,6 +125,8 @@ for (const folderId of dirs) {
       teamStatus:   meta.status || '',
       teamNote:     meta.note   || '',
       assignedTo:   meta.assignedTo || '',
+      langOverride: meta.langOverride || '',
+      contextTags:  meta.contextTags || [],
       hasThumbnail: !!(data.thumbnail?.croppedImageURL || data.thumbnail?.originalImageURL),
       thumbnailUrl: data.thumbnail?.croppedImageURL || data.thumbnail?.originalImageURL || '',
       sectionCount: (data.sections || []).length,

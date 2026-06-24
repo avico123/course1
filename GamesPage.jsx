@@ -29,6 +29,7 @@ export default function GamesPage({ onEdit }) {
   const [filterIssues, setFilterIssues]     = useState(false);
   const [filterPattern, setFilterPattern]   = useState('');
   const [filterTeam, setFilterTeam]         = useState('');
+  const [filterContextTag, setFilterContextTag] = useState('');
   const [stats, setStats]       = useState(null);
   const [indexInfo, setIndexInfo] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -49,11 +50,12 @@ export default function GamesPage({ onEdit }) {
     setLoading(true);
     const params = new URLSearchParams({
       page, limit,
-      ...(search        ? { search }               : {}),
-      ...(filterLang    ? { lang: filterLang }      : {}),
-      ...(filterIssues  ? { issues: '1' }           : {}),
-      ...(filterPattern ? { pattern: filterPattern }: {}),
-      ...(filterTeam    ? { teamStatus: filterTeam }: {}),
+      ...(search           ? { search }                       : {}),
+      ...(filterLang       ? { lang: filterLang }             : {}),
+      ...(filterIssues     ? { issues: '1' }                  : {}),
+      ...(filterPattern    ? { pattern: filterPattern }        : {}),
+      ...(filterTeam       ? { teamStatus: filterTeam }       : {}),
+      ...(filterContextTag ? { contextTag: filterContextTag } : {}),
     });
     const r    = await authFetch(`/api/games?${params}`);
     const data = await r.json();
@@ -61,7 +63,7 @@ export default function GamesPage({ onEdit }) {
     setTotal(data.total || 0);
     if (data.indexBuiltAt) setIndexInfo(i => ({ ...i, builtAt: data.indexBuiltAt }));
     setLoading(false);
-  }, [page, search, filterLang, filterIssues, filterPattern, filterTeam]);
+  }, [page, search, filterLang, filterIssues, filterPattern, filterTeam, filterContextTag]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -91,14 +93,26 @@ export default function GamesPage({ onEdit }) {
 
   const openMeta = (g) => {
     setMetaPanel(g.folderId);
-    setMetaForm({ status: g.teamStatus || '', note: g.teamNote || '', assignedTo: g.assignedTo || '' });
+    setMetaForm({
+      status: g.teamStatus || '',
+      note: g.teamNote || '',
+      assignedTo: g.assignedTo || '',
+      langOverride: g.langOverride || '',
+      contextTags: (g.contextTags || []).join(', '),
+    });
   };
 
   const saveMeta = async () => {
+    const payload = {
+      ...metaForm,
+      contextTags: metaForm.contextTags
+        ? metaForm.contextTags.split(',').map(t => t.trim()).filter(Boolean)
+        : [],
+    };
     await authFetch(`/api/games/${metaPanel}/meta`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(metaForm),
+      body: JSON.stringify(payload),
     });
     setMetaPanel(null);
     load();
@@ -178,8 +192,14 @@ export default function GamesPage({ onEdit }) {
             <option key={t.value} value={t.value}>{t.label}</option>
           ))}
         </select>
-        {(filterLang || filterIssues || filterPattern || filterTeam || search) && (
-          <button style={s.clearBtn} onClick={() => { setFilterLang(''); setFilterIssues(false); setFilterPattern(''); setFilterTeam(''); setSearch(''); setPage(1); }}>✕ נקה</button>
+        <input
+          style={{ ...s.search, width: 140 }}
+          value={filterContextTag}
+          onChange={e => { setFilterContextTag(e.target.value); setPage(1); }}
+          placeholder="🏷 תגית הקשר..."
+        />
+        {(filterLang || filterIssues || filterPattern || filterTeam || filterContextTag || search) && (
+          <button style={s.clearBtn} onClick={() => { setFilterLang(''); setFilterIssues(false); setFilterPattern(''); setFilterTeam(''); setFilterContextTag(''); setSearch(''); setPage(1); }}>✕ נקה</button>
         )}
       </div>
 
@@ -232,6 +252,19 @@ export default function GamesPage({ onEdit }) {
             <Field label="הוקצה ל">
               <input style={s.inp} value={metaForm.assignedTo} onChange={e => setMetaForm(f => ({...f, assignedTo: e.target.value}))} placeholder="שם העובד..." />
             </Field>
+            <Field label="שפה (תיקון ידני)">
+              <select style={s.inp} value={metaForm.langOverride} onChange={e => setMetaForm(f => ({...f, langOverride: e.target.value}))}>
+                <option value="">— זיהוי אוטומטי</option>
+                <option value="he">עברית</option>
+                <option value="en">English</option>
+                <option value="es">Español</option>
+                <option value="ar">عربية</option>
+              </select>
+            </Field>
+            <Field label="תגיות הקשר (ספר תנ״ך, נושא...)">
+              <input style={s.inp} value={metaForm.contextTags} onChange={e => setMetaForm(f => ({...f, contextTags: e.target.value}))} placeholder="בראשית, שמות, דברים..." />
+              <div style={{ fontSize: 11, color: '#475569', marginTop: 4 }}>מופרדות בפסיק</div>
+            </Field>
             <div style={s.modalBtns}>
               <button style={s.cancelBtn} onClick={() => setMetaPanel(null)}>ביטול</button>
               <button style={s.createBtn} onClick={saveMeta}>שמור תיוג</button>
@@ -273,11 +306,16 @@ export default function GamesPage({ onEdit }) {
                     <div style={s.gameId}>{g.folderId?.slice(0, 8)}...</div>
                   </td>
                   <td style={s.td}>
-                    <span style={{ ...s.tag, color: LANG_COLORS[g.detectedLang] || '#94a3b8', background: 'rgba(255,255,255,0.04)' }}>
-                      {LANG_LABELS[g.detectedLang] || '?'}
+                    <span style={{ ...s.tag, color: LANG_COLORS[g.detectedLang] || '#94a3b8', background: 'rgba(255,255,255,0.04)' }} title={g.langOverride ? 'שפה תוקנה ידנית' : 'זיהוי אוטומטי'}>
+                      {LANG_LABELS[g.detectedLang] || '?'}{g.langOverride ? ' ✎' : ''}
                     </span>
                   </td>
-                  <td style={s.td}><span style={s.tag}>{g.patternId}</span></td>
+                  <td style={s.td}>
+                    <span style={s.tag}>{g.patternId}</span>
+                    {(g.contextTags || []).map(t => (
+                      <span key={t} style={{ ...s.tag, background: 'rgba(124,58,237,0.15)', color: '#a78bfa', display: 'inline-block', marginTop: 3, marginRight: 3 }}>{t}</span>
+                    ))}
+                  </td>
                   <td style={s.td}>
                     <span style={{ ...s.tag, background: g.status === 'published' ? 'rgba(34,197,94,0.15)' : 'rgba(234,179,8,0.15)', color: g.status === 'published' ? '#86efac' : '#fde047' }}>
                       {g.status === 'published' ? 'פורסם' : 'טיוטה'}

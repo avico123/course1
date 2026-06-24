@@ -55,7 +55,7 @@ function sanitizeId(id) {
 // ── GET /api/games — list ─────────────────────────────────────────────────────
 router.get('/', requireAuth, (req, res) => {
   try {
-    const { search, pattern, lang, issues, teamStatus, page = 1, limit = 50 } = req.query;
+    const { search, pattern, lang, issues, teamStatus, contextTag, page = 1, limit = 50 } = req.query;
 
     const idx = getIndex();
 
@@ -82,6 +82,9 @@ router.get('/', requireAuth, (req, res) => {
     if (teamStatus) {
       items = items.filter(g => g.teamStatus === teamStatus);
     }
+    if (contextTag) {
+      items = items.filter(g => (g.contextTags || []).includes(contextTag));
+    }
 
     const total = items.length;
     const lim   = parseInt(limit);
@@ -107,6 +110,8 @@ router.get('/', requireAuth, (req, res) => {
         teamStatus:  g.teamStatus,
         teamNote:    g.teamNote,
         assignedTo:  g.assignedTo,
+        langOverride: g.langOverride || '',
+        contextTags:  g.contextTags || [],
       })),
     });
   } catch (err) {
@@ -210,16 +215,18 @@ router.patch('/:id/meta', requireAuth, (req, res) => {
     try { existing = JSON.parse(fs.readFileSync(metaPath, 'utf8')); } catch {}
   }
 
-  const { status, note, assignedTo } = req.body;
-  if (status !== undefined)     existing.status     = status;
-  if (note !== undefined)       existing.note       = note;
-  if (assignedTo !== undefined) existing.assignedTo = assignedTo;
+  const { status, note, assignedTo, langOverride, contextTags } = req.body;
+  if (status !== undefined)       existing.status       = status;
+  if (note !== undefined)         existing.note         = note;
+  if (assignedTo !== undefined)   existing.assignedTo   = assignedTo;
+  if (langOverride !== undefined) existing.langOverride = langOverride;
+  if (contextTags !== undefined)  existing.contextTags  = contextTags;
   existing.updatedAt  = new Date().toISOString();
   existing.updatedBy  = req.user?.username || '';
 
   fs.writeFileSync(metaPath, JSON.stringify(existing, null, 2));
 
-  // Update in-memory index
+  // Update in-memory index immediately (no need to re-scan)
   const idx = getIndex();
   if (idx) {
     const item = idx.find(g => g.folderId === id);
@@ -227,6 +234,11 @@ router.patch('/:id/meta', requireAuth, (req, res) => {
       item.teamStatus  = existing.status || '';
       item.teamNote    = existing.note   || '';
       item.assignedTo  = existing.assignedTo || '';
+      if (langOverride !== undefined) {
+        item.langOverride = existing.langOverride || '';
+        item.detectedLang = existing.langOverride || item.detectedLang;
+      }
+      if (contextTags !== undefined) item.contextTags = existing.contextTags || [];
     }
   }
 
