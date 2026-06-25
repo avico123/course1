@@ -61,18 +61,28 @@ console.log(`Total rows: ${rows.length - 1}`);
 
 let matched = 0, skipped = 0, errors = 0;
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 for (let r = 1; r < rows.length; r++) {
   const row = rows[r];
   if (!row || row.length < 3) continue;
 
   const status = (row[iStatus] || '').trim();
-  if (status !== 'found') { skipped++; continue; }
 
-  const embed = row[iEmbed] || '';
-  const uuidMatch = embed.match(/data-item="([a-f0-9-]{36})"/i);
-  if (!uuidMatch) { skipped++; continue; }
+  let uuid = null;
 
-  const uuid     = uuidMatch[1];
+  if (UUID_RE.test(status)) {
+    // UUID is directly in the buzz_status column
+    uuid = status;
+  } else if (status === 'found') {
+    // UUID is embedded in the embed_code as data-item="..." or data-id=...
+    const embed = row[iEmbed] || '';
+    const m = embed.match(/data-item="([a-f0-9-]{36})"/i)
+           || embed.match(/data-id="?([a-f0-9-]{36})"?/i);
+    if (m) uuid = m[1];
+  }
+
+  if (!uuid) { skipped++; continue; }
   const gameDir  = path.join(GAMES_DIR, uuid);
   const metaPath = path.join(gameDir, '_meta.json');
 
@@ -87,9 +97,11 @@ for (let r = 1; r < rows.length; r++) {
     try { existing = JSON.parse(fs.readFileSync(metaPath, 'utf8')); } catch {}
   }
 
+  // When UUID is in the status column, remaining columns shift: no item_name column
+  const uuidInStatusCol = UUID_RE.test(status);
   const book    = (row[iBook]    || '').trim();
   const chapter = (row[iChapter] || '').trim();
-  const name    = (row[iName]    || '').trim();
+  const name    = uuidInStatusCol ? '' : (row[iName] || '').trim();
   const lang    = (row[iLang]    || '').trim();
 
   // Build contextTags: [book, chapter, item-name] — skip empty parts
