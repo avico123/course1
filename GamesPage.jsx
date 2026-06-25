@@ -279,12 +279,23 @@ export default function GamesPage({ onEdit }) {
       ) : (
         <div style={s.tableWrap}>
           <table style={s.table}>
+            <colgroup>
+              <col style={{ width: 64 }} />   {/* תמונה */}
+              <col style={{ width: '25%' }} /> {/* כותרת */}
+              <col style={{ width: 80 }} />    {/* שפה */}
+              <col style={{ width: '18%' }} /> {/* סוג + תגיות */}
+              <col style={{ width: 70 }} />    {/* סטטוס */}
+              <col style={{ width: 100 }} />   {/* בעיות */}
+              <col style={{ width: 100 }} />   {/* צוות */}
+              <col style={{ width: 80 }} />    {/* עדכון */}
+              <col style={{ width: 130 }} />   {/* פעולות */}
+            </colgroup>
             <thead>
               <tr style={s.thead}>
                 <th style={s.th}>תמונה</th>
                 <th style={s.th}>כותרת</th>
                 <th style={s.th}>שפה</th>
-                <th style={s.th}>סוג</th>
+                <th style={s.th}>סוג / הקשר</th>
                 <th style={s.th}>סטטוס</th>
                 <th style={s.th}>בעיות</th>
                 <th style={s.th}>צוות</th>
@@ -301,8 +312,8 @@ export default function GamesPage({ onEdit }) {
                       : <div style={s.thumbPlaceholder}>🎮</div>
                     }
                   </td>
-                  <td style={{ ...s.td, maxWidth: 220, direction: 'rtl', overflow: 'hidden' }}>
-                    <div style={s.gameTitle}>{g.title || <span style={{ color: '#475569' }}>ללא שם</span>}</div>
+                  <td style={{ ...s.td, overflow: 'hidden' }}>
+                    <div style={s.gameTitle} title={g.title}>{g.title || <span style={{ color: '#475569' }}>ללא שם</span>}</div>
                     <div style={s.gameId}>{g.folderId?.slice(0, 8)}...</div>
                   </td>
                   <td style={s.td}>
@@ -310,10 +321,10 @@ export default function GamesPage({ onEdit }) {
                       {LANG_LABELS[g.detectedLang] || '?'}{g.langOverride ? ' ✎' : ''}
                     </span>
                   </td>
-                  <td style={{ ...s.td, maxWidth: 180 }}>
+                  <td style={{ ...s.td, overflow: 'hidden' }}>
                     <span style={s.tag}>{g.patternId}</span>
-                    {(g.contextTags || []).map(t => (
-                      <span key={t} style={{ ...s.tag, background: 'rgba(124,58,237,0.15)', color: '#a78bfa', display: 'inline-block', marginTop: 3, marginRight: 3, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={t}>{t}</span>
+                    {(g.contextTags || []).filter(t => t && !t.includes('<')).map(t => (
+                      <span key={t} style={{ ...s.tag, background: 'rgba(124,58,237,0.15)', color: '#a78bfa', display: 'block', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={t}>{t}</span>
                     ))}
                   </td>
                   <td style={s.td}>
@@ -328,13 +339,13 @@ export default function GamesPage({ onEdit }) {
                       </span>
                     ))}
                   </td>
-                  <td style={s.td}>
+                  <td style={{ ...s.td, overflow: 'hidden' }}>
                     {g.teamStatus && (
                       <span style={{ ...s.tag, color: TEAM_STATUSES.find(t => t.value === g.teamStatus)?.color || '#94a3b8' }}>
                         {TEAM_STATUSES.find(t => t.value === g.teamStatus)?.label || g.teamStatus}
                       </span>
                     )}
-                    {g.assignedTo && <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{g.assignedTo}</div>}
+                    {g.assignedTo && <div style={{ fontSize: 11, color: '#64748b', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.assignedTo}</div>}
                   </td>
                   <td style={s.td}>
                     <span style={{ fontSize: 12, color: '#64748b' }}>{g.lastEdit ? new Date(g.lastEdit).toLocaleDateString('he') : ''}</span>
@@ -406,7 +417,7 @@ const s = {
   teamBtn: { background: '#0f1117', border: '2px solid', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 13, fontWeight: 600 },
   loading: { textAlign: 'center', color: '#64748b', padding: 60 },
   tableWrap: { background: '#1a1d2e', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' },
-  table: { width: '100%', borderCollapse: 'collapse' },
+  table: { width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' },
   thead: { background: 'rgba(255,255,255,0.03)' },
   th: { padding: '12px 16px', color: '#64748b', fontSize: 12, fontWeight: 600, textAlign: 'right', borderBottom: '1px solid rgba(255,255,255,0.06)', whiteSpace: 'nowrap' },
   tr: { borderBottom: '1px solid rgba(255,255,255,0.04)' },
