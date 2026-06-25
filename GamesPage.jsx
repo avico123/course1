@@ -301,7 +301,7 @@ export default function GamesPage({ onEdit }) {
                       : <div style={s.thumbPlaceholder}>🎮</div>
                     }
                   </td>
-                  <td style={{ ...s.td, maxWidth: 240, direction: 'rtl' }}>
+                  <td style={{ ...s.td, maxWidth: 220, direction: 'rtl', overflow: 'hidden' }}>
                     <div style={s.gameTitle}>{g.title || <span style={{ color: '#475569' }}>ללא שם</span>}</div>
                     <div style={s.gameId}>{g.folderId?.slice(0, 8)}...</div>
                   </td>
@@ -310,10 +310,10 @@ export default function GamesPage({ onEdit }) {
                       {LANG_LABELS[g.detectedLang] || '?'}{g.langOverride ? ' ✎' : ''}
                     </span>
                   </td>
-                  <td style={s.td}>
+                  <td style={{ ...s.td, maxWidth: 180 }}>
                     <span style={s.tag}>{g.patternId}</span>
                     {(g.contextTags || []).map(t => (
-                      <span key={t} style={{ ...s.tag, background: 'rgba(124,58,237,0.15)', color: '#a78bfa', display: 'inline-block', marginTop: 3, marginRight: 3 }}>{t}</span>
+                      <span key={t} style={{ ...s.tag, background: 'rgba(124,58,237,0.15)', color: '#a78bfa', display: 'inline-block', marginTop: 3, marginRight: 3, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={t}>{t}</span>
                     ))}
                   </td>
                   <td style={s.td}>
@@ -413,7 +413,7 @@ const s = {
   td: { padding: '10px 16px', color: '#cbd5e1', fontSize: 14, verticalAlign: 'middle' },
   thumb: { width: 48, height: 36, objectFit: 'cover', borderRadius: 6, display: 'block' },
   thumbPlaceholder: { width: 48, height: 36, background: '#0f1117', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 },
-  gameTitle: { fontWeight: 500, color: '#e2e8f0', marginBottom: 2 },
+  gameTitle: { fontWeight: 500, color: '#e2e8f0', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   gameId: { fontSize: 11, color: '#475569' },
   tag: { fontSize: 11, background: '#334155', padding: '3px 8px', borderRadius: 20, color: '#94a3b8', whiteSpace: 'nowrap' },
   actionBtn: { background: '#1e2235', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, cursor: 'pointer', padding: '5px 8px', fontSize: 14 },
