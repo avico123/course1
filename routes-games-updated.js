@@ -55,7 +55,7 @@ function sanitizeId(id) {
 // ── GET /api/games — list ─────────────────────────────────────────────────────
 router.get('/', requireAuth, (req, res) => {
   try {
-    const { search, pattern, lang, issues, teamStatus, contextTag, page = 1, limit = 50 } = req.query;
+    const { search, pattern, lang, issues, issueType, teamStatus, contextTag, page = 1, limit = 50 } = req.query;
 
     const idx = getIndex();
 
@@ -78,6 +78,9 @@ router.get('/', requireAuth, (req, res) => {
     }
     if (issues === 'true' || issues === '1') {
       items = items.filter(g => g.issues && g.issues.length > 0);
+    }
+    if (issueType) {
+      items = items.filter(g => (g.issues || []).includes(issueType));
     }
     if (teamStatus) {
       items = items.filter(g => g.teamStatus === teamStatus);

@@ -26,7 +26,7 @@ export default function GamesPage({ onEdit }) {
   const [search, setSearch]     = useState('');
   const [page, setPage]         = useState(1);
   const [filterLang, setFilterLang]         = useState('');
-  const [filterIssues, setFilterIssues]     = useState(false);
+  const [filterIssue, setFilterIssue]       = useState(''); // specific issue type, not boolean
   const [filterPattern, setFilterPattern]   = useState('');
   const [filterTeam, setFilterTeam]         = useState('');
   const [filterContextTag, setFilterContextTag] = useState('');
@@ -52,7 +52,7 @@ export default function GamesPage({ onEdit }) {
       page, limit,
       ...(search           ? { search }                       : {}),
       ...(filterLang       ? { lang: filterLang }             : {}),
-      ...(filterIssues     ? { issues: '1' }                  : {}),
+      ...(filterIssue      ? { issueType: filterIssue }        : {}),
       ...(filterPattern    ? { pattern: filterPattern }        : {}),
       ...(filterTeam       ? { teamStatus: filterTeam }       : {}),
       ...(filterContextTag ? { contextTag: filterContextTag } : {}),
@@ -63,7 +63,7 @@ export default function GamesPage({ onEdit }) {
     setTotal(data.total || 0);
     if (data.indexBuiltAt) setIndexInfo(i => ({ ...i, builtAt: data.indexBuiltAt }));
     setLoading(false);
-  }, [page, search, filterLang, filterIssues, filterPattern, filterTeam, filterContextTag]);
+  }, [page, search, filterLang, filterIssue, filterPattern, filterTeam, filterContextTag]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -164,8 +164,8 @@ export default function GamesPage({ onEdit }) {
           ))}
           <div style={s.statDivider} />
           {Object.entries(stats.issues || {}).map(([iss, count]) => (
-            <button key={iss} style={{ ...s.statChip, borderColor: filterIssues ? '#f87171' : 'transparent', color: '#f87171' }}
-              onClick={() => { setFilterIssues(!filterIssues); setPage(1); }}>
+            <button key={iss} style={{ ...s.statChip, borderColor: filterIssue === iss ? '#f87171' : 'transparent', color: '#f87171' }}
+              onClick={() => { setFilterIssue(filterIssue === iss ? '' : iss); setPage(1); }}>
               {ISSUE_LABELS[iss] || iss} <span style={s.chipCount}>{count}</span>
             </button>
           ))}
@@ -198,8 +198,8 @@ export default function GamesPage({ onEdit }) {
           onChange={e => { setFilterContextTag(e.target.value); setPage(1); }}
           placeholder="🏷 תגית הקשר..."
         />
-        {(filterLang || filterIssues || filterPattern || filterTeam || filterContextTag || search) && (
-          <button style={s.clearBtn} onClick={() => { setFilterLang(''); setFilterIssues(false); setFilterPattern(''); setFilterTeam(''); setFilterContextTag(''); setSearch(''); setPage(1); }}>✕ נקה</button>
+        {(filterLang || filterIssue || filterPattern || filterTeam || filterContextTag || search) && (
+          <button style={s.clearBtn} onClick={() => { setFilterLang(''); setFilterIssue(''); setFilterPattern(''); setFilterTeam(''); setFilterContextTag(''); setSearch(''); setPage(1); }}>✕ נקה</button>
         )}
       </div>
 

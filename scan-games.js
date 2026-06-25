@@ -28,10 +28,12 @@ function detectLang(title = '', locale = '') {
   if (total === 0) return 'unknown';
   if (he / total > 0.3) return 'he';
   if (ar / total > 0.3) return 'ar';
-  // Latin script: check for Spanish-specific characters first
+  // Latin script: Spanish-specific chars are definitive
   if (es > 0) return 'es';
-  // Use locale as tiebreaker between English and Spanish
+  // For Latin script, locale is a strong signal (Hebrew items with wrong es-ES locale
+  // would have been caught by the he check above already)
   if (locale && locale.startsWith('es')) return 'es';
+  if (locale && locale.startsWith('en')) return 'en';
   return 'en';
 }
 
