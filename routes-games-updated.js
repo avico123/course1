@@ -174,14 +174,17 @@ router.get('/stats', requireAuth, (req, res) => {
     const idx = getIndex();
     if (!idx) return res.json({});
 
-    const langs = {}, patterns = {}, issues = {}, teamStatuses = {};
+    const langs = {}, patterns = {}, issues = {}, teamStatuses = {}, contextTags = {};
     for (const g of idx) {
       langs[g.detectedLang] = (langs[g.detectedLang] || 0) + 1;
       patterns[g.patternId] = (patterns[g.patternId] || 0) + 1;
       if (g.teamStatus) teamStatuses[g.teamStatus] = (teamStatuses[g.teamStatus] || 0) + 1;
       for (const iss of (g.issues || [])) issues[iss] = (issues[iss] || 0) + 1;
+      for (const tag of (g.contextTags || [])) {
+        if (tag && !tag.includes('<')) contextTags[tag] = (contextTags[tag] || 0) + 1;
+      }
     }
-    res.json({ total: idx.length, langs, patterns, issues, teamStatuses });
+    res.json({ total: idx.length, langs, patterns, issues, teamStatuses, contextTags });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

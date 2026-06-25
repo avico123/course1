@@ -186,18 +186,21 @@ export default function GamesPage({ onEdit }) {
             <option key={p} value={p}>{p} ({stats.patterns[p]})</option>
           ))}
         </select>
+        <select style={s.select} value={filterContextTag} onChange={e => { setFilterContextTag(e.target.value); setPage(1); }}>
+          <option value="">כל ההקשרים</option>
+          {Object.entries(stats?.contextTags || {})
+            .sort((a, b) => a[0].localeCompare(b[0], 'he'))
+            .map(([tag, count]) => (
+              <option key={tag} value={tag}>{tag} ({count})</option>
+            ))
+          }
+        </select>
         <select style={s.select} value={filterTeam} onChange={e => { setFilterTeam(e.target.value); setPage(1); }}>
           <option value="">כל הסטטוסים</option>
           {TEAM_STATUSES.filter(t => t.value).map(t => (
             <option key={t.value} value={t.value}>{t.label}</option>
           ))}
         </select>
-        <input
-          style={{ ...s.search, width: 140 }}
-          value={filterContextTag}
-          onChange={e => { setFilterContextTag(e.target.value); setPage(1); }}
-          placeholder="🏷 תגית הקשר..."
-        />
         {(filterLang || filterIssue || filterPattern || filterTeam || filterContextTag || search) && (
           <button style={s.clearBtn} onClick={() => { setFilterLang(''); setFilterIssue(''); setFilterPattern(''); setFilterTeam(''); setFilterContextTag(''); setSearch(''); setPage(1); }}>✕ נקה</button>
         )}
