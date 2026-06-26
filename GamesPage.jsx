@@ -124,8 +124,37 @@ export default function GamesPage({ onEdit }) {
     setTimeout(() => { setRebuilding(false); load(); }, 3000);
   };
 
+  const toggleHeadImage = async (g) => {
+    const newVal = !g.showHeadImage;
+    await authFetch(`/api/games/${g.folderId}/meta`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ showHeadImage: newVal }),
+    });
+    setGames(gs => gs.map(x => x.folderId === g.folderId ? { ...x, showHeadImage: newVal } : x));
+  };
+
+  const bulkEnableImages = async () => {
+    const filter = {
+      ...(filterLang       ? { lang: filterLang }            : {}),
+      ...(filterPattern    ? { pattern: filterPattern }       : {}),
+      ...(filterContextTag ? { contextTag: filterContextTag } : {}),
+      ...(filterTeam       ? { teamStatus: filterTeam }      : {}),
+      ...(filterIssue      ? { issueType: filterIssue }      : {}),
+    };
+    const r = await authFetch('/api/games/bulk-meta', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filter, meta: { showHeadImage: true } }),
+    });
+    const data = await r.json();
+    alert(`הופעלו תמונות ל-${data.count} גיימים`);
+    load();
+  };
+
   const canDelete  = ['superadmin', 'admin'].includes(user?.role);
   const canRebuild = ['superadmin', 'admin'].includes(user?.role);
+  const canBulk    = ['superadmin', 'admin'].includes(user?.role);
   const totalPages = Math.ceil(total / limit);
 
   return (
@@ -201,6 +230,12 @@ export default function GamesPage({ onEdit }) {
             <option key={t.value} value={t.value}>{t.label}</option>
           ))}
         </select>
+        {canBulk && (filterLang || filterPattern || filterContextTag || filterTeam || filterIssue) && (
+          <button style={{ ...s.clearBtn, color: '#34d399', borderColor: 'rgba(52,211,153,0.3)' }}
+            onClick={bulkEnableImages} title="הפעל תמונת כותרת לכל התוצאות המסוננות">
+            📷 הפעל תמונות לכולם
+          </button>
+        )}
         {(filterLang || filterIssue || filterPattern || filterTeam || filterContextTag || search) && (
           <button style={s.clearBtn} onClick={() => { setFilterLang(''); setFilterIssue(''); setFilterPattern(''); setFilterTeam(''); setFilterContextTag(''); setSearch(''); setPage(1); }}>✕ נקה</button>
         )}
@@ -357,6 +392,11 @@ export default function GamesPage({ onEdit }) {
                     <div style={{ display: 'flex', gap: 4 }}>
                       <button style={s.actionBtn} onClick={() => onEdit(g.folderId)} title="ערוך">✏️</button>
                       <button style={s.actionBtn} onClick={() => window.open(`/game/${g.folderId}`, '_blank')} title="תצוגה מקדימה">👁</button>
+                      <button style={{ ...s.actionBtn, color: g.showHeadImage ? '#34d399' : '#475569' }}
+                        onClick={() => toggleHeadImage(g)}
+                        title={g.showHeadImage ? 'תמונת כותרת פעילה — לחץ לכיבוי' : 'תמונת כותרת כבויה — לחץ להפעלה'}>
+                        🖼
+                      </button>
                       <button style={s.actionBtn} onClick={() => openMeta(g)} title="תייג">🏷</button>
                       <button style={s.actionBtn} onClick={() => handleDuplicate(g.folderId)} title="שכפל">⧉</button>
                       {canDelete && <button style={{ ...s.actionBtn, color: '#f87171' }} onClick={() => handleDelete(g.folderId, g.title)} title="מחק">🗑</button>}

@@ -129,6 +129,7 @@ for (const folderId of dirs) {
       assignedTo:   meta.assignedTo || '',
       langOverride: meta.langOverride || '',
       contextTags:  meta.contextTags || [],
+      showHeadImage: meta.showHeadImage || false,
       hasThumbnail: !!(data.thumbnail?.croppedImageURL || data.thumbnail?.originalImageURL),
       thumbnailUrl: data.thumbnail?.croppedImageURL || data.thumbnail?.originalImageURL || '',
       sectionCount: (data.sections || []).length,

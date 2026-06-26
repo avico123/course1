@@ -113,8 +113,9 @@ router.get('/', requireAuth, (req, res) => {
         teamStatus:  g.teamStatus,
         teamNote:    g.teamNote,
         assignedTo:  g.assignedTo,
-        langOverride: g.langOverride || '',
-        contextTags:  g.contextTags || [],
+        langOverride:  g.langOverride || '',
+        contextTags:   g.contextTags || [],
+        showHeadImage: g.showHeadImage || false,
       })),
     });
   } catch (err) {
@@ -221,12 +222,13 @@ router.patch('/:id/meta', requireAuth, (req, res) => {
     try { existing = JSON.parse(fs.readFileSync(metaPath, 'utf8')); } catch {}
   }
 
-  const { status, note, assignedTo, langOverride, contextTags } = req.body;
-  if (status !== undefined)       existing.status       = status;
-  if (note !== undefined)         existing.note         = note;
-  if (assignedTo !== undefined)   existing.assignedTo   = assignedTo;
-  if (langOverride !== undefined) existing.langOverride = langOverride;
-  if (contextTags !== undefined)  existing.contextTags  = contextTags;
+  const { status, note, assignedTo, langOverride, contextTags, showHeadImage } = req.body;
+  if (status !== undefined)        existing.status        = status;
+  if (note !== undefined)          existing.note          = note;
+  if (assignedTo !== undefined)    existing.assignedTo    = assignedTo;
+  if (langOverride !== undefined)  existing.langOverride  = langOverride;
+  if (contextTags !== undefined)   existing.contextTags   = contextTags;
+  if (showHeadImage !== undefined) existing.showHeadImage = showHeadImage;
   existing.updatedAt  = new Date().toISOString();
   existing.updatedBy  = req.user?.username || '';
 
@@ -244,11 +246,41 @@ router.patch('/:id/meta', requireAuth, (req, res) => {
         item.langOverride = existing.langOverride || '';
         item.detectedLang = existing.langOverride || item.detectedLang;
       }
-      if (contextTags !== undefined) item.contextTags = existing.contextTags || [];
+      if (contextTags !== undefined)   item.contextTags   = existing.contextTags || [];
+      if (showHeadImage !== undefined) item.showHeadImage = existing.showHeadImage || false;
     }
   }
 
   res.json({ ok: true });
+});
+
+// ── POST /api/games/bulk-meta — apply meta patch to all filtered items ────────
+router.post('/bulk-meta', requireAuth, requireRole('superadmin', 'admin'), (req, res) => {
+  const { filter = {}, meta = {} } = req.body;
+  const idx = getIndex();
+  if (!idx) return res.status(400).json({ error: 'Index not built' });
+
+  let items = [...idx];
+  if (filter.lang)        items = items.filter(g => g.detectedLang === filter.lang);
+  if (filter.pattern)     items = items.filter(g => g.patternId === filter.pattern);
+  if (filter.contextTag)  items = items.filter(g => (g.contextTags || []).includes(filter.contextTag));
+  if (filter.teamStatus)  items = items.filter(g => g.teamStatus === filter.teamStatus);
+  if (filter.issueType)   items = items.filter(g => (g.issues || []).includes(filter.issueType));
+
+  let count = 0;
+  for (const item of items) {
+    const metaPath = path.join(GAMES_DIR, item.folderId, '_meta.json');
+    let existing = {};
+    if (fs.existsSync(metaPath)) {
+      try { existing = JSON.parse(fs.readFileSync(metaPath, 'utf8')); } catch {}
+    }
+    Object.assign(existing, meta, { updatedAt: new Date().toISOString(), updatedBy: req.user?.username || '' });
+    fs.writeFileSync(metaPath, JSON.stringify(existing, null, 2));
+    Object.assign(item, meta);
+    count++;
+  }
+
+  res.json({ ok: true, count });
 });
 
 // ── GET /api/games/:id — full game ───────────────────────────────────────────
@@ -271,6 +303,10 @@ router.get('/:id', (req, res) => {
     if (!foundFolder) return res.status(404).json({ error: 'Game not found' });
     const data = readGameJson(foundFolder);
     data._folderId = foundFolder;
+    const metaPath = path.join(GAMES_DIR, foundFolder, '_meta.json');
+    if (fs.existsSync(metaPath)) {
+      try { data._meta = JSON.parse(fs.readFileSync(metaPath, 'utf8')); } catch {}
+    }
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
