@@ -20,6 +20,11 @@ const styles = {
   sectionTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 10 },
 }
 
+// Detect if a string is primarily RTL (Hebrew/Arabic)
+function textDir(str = '') {
+  return /[֐-׿؀-ۿ]/.test(str) ? 'rtl' : 'ltr';
+}
+
 function imgUrl(filePath, folderId) {
   if (!filePath) return null
   const filename = filePath.replace(/^files\//, '')
@@ -28,10 +33,11 @@ function imgUrl(filePath, folderId) {
 
 function ParagraphSection({ section }) {
   const titleText = section.title?.ops?.map(o => o.insert).join('').trim()
+  const bodyText  = section.text?.ops?.map(o => o.insert).join('') || ''
   return (
     <div style={styles.section}>
-      {titleText && <div style={styles.sectionTitle}>{titleText}</div>}
-      <div style={styles.paragraph}>{renderDelta(section.text)}</div>
+      {titleText && <div style={{ ...styles.sectionTitle, direction: textDir(titleText), textAlign: textDir(titleText) === 'rtl' ? 'right' : 'left' }}>{titleText}</div>}
+      <div style={{ ...styles.paragraph, direction: textDir(bodyText), textAlign: textDir(bodyText) === 'rtl' ? 'right' : 'left' }}>{renderDelta(section.text)}</div>
     </div>
   )
 }
@@ -44,7 +50,7 @@ function ImageSection({ section, folderId }) {
 
   return (
     <div style={styles.section}>
-      {titleText && <div style={styles.sectionTitle}>{titleText}</div>}
+      {titleText && <div style={{ ...styles.sectionTitle, direction: textDir(titleText), textAlign: textDir(titleText) === 'rtl' ? 'right' : 'left' }}>{titleText}</div>}
       <img
         src={imgUrl(media.url, folderId)}
         alt={media.alt || caption || ''}
@@ -93,9 +99,9 @@ export default function StoryPattern({ game }) {
         />
       )}
       <div style={styles.page}>
-        <div style={styles.header}>
+        <div style={{ ...styles.header, direction: textDir(game.title), textAlign: textDir(game.title) === 'rtl' ? 'right' : 'left' }}>
           <div style={styles.title}>{game.title}</div>
-          {game.description && <div style={styles.description}>{game.description}</div>}
+          {game.description && <div style={{ ...styles.description, direction: textDir(game.description), textAlign: textDir(game.description) === 'rtl' ? 'right' : 'left' }}>{game.description}</div>}
         </div>
         {game.sections?.map((slide, i) =>
           slide.map(section => renderSection(section, folderId))
