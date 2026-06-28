@@ -115,7 +115,8 @@ router.get('/', requireAuth, (req, res) => {
         assignedTo:  g.assignedTo,
         langOverride:  g.langOverride || '',
         contextTags:   g.contextTags || [],
-        showHeadImage: g.showHeadImage || false,
+        showHeadImage:  g.showHeadImage  || false,
+        showGameTitle:  g.showGameTitle  || false,
       })),
     });
   } catch (err) {
@@ -228,7 +229,8 @@ router.patch('/:id/meta', requireAuth, (req, res) => {
   if (assignedTo !== undefined)    existing.assignedTo    = assignedTo;
   if (langOverride !== undefined)  existing.langOverride  = langOverride;
   if (contextTags !== undefined)   existing.contextTags   = contextTags;
-  if (showHeadImage !== undefined) existing.showHeadImage = showHeadImage;
+  if (showHeadImage !== undefined)  existing.showHeadImage  = showHeadImage;
+  if (req.body.showGameTitle !== undefined) existing.showGameTitle = req.body.showGameTitle;
   existing.updatedAt  = new Date().toISOString();
   existing.updatedBy  = req.user?.username || '';
 
@@ -247,7 +249,8 @@ router.patch('/:id/meta', requireAuth, (req, res) => {
         item.detectedLang = existing.langOverride || item.detectedLang;
       }
       if (contextTags !== undefined)   item.contextTags   = existing.contextTags || [];
-      if (showHeadImage !== undefined) item.showHeadImage = existing.showHeadImage || false;
+      if (showHeadImage !== undefined)            item.showHeadImage  = existing.showHeadImage  || false;
+      if (req.body.showGameTitle !== undefined)  item.showGameTitle  = existing.showGameTitle  || false;
     }
   }
 

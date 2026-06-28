@@ -88,6 +88,14 @@ export default function StoryPattern({ game }) {
   const cover = game.cover?.url
   const showHeadImage = game._meta?.showHeadImage === true
 
+  // showGameTitle: if explicitly set in meta, use it.
+  // Otherwise auto-hide when title is Hebrew but game locale is LTR (Spanish/English).
+  const titleIsHebrew = /[֐-׿]/.test(game.title || '')
+  const gameIsRTL     = /^(he|ar)/.test((game.locale || '').toLowerCase())
+  const showGameTitle = game._meta?.showGameTitle !== undefined
+    ? game._meta.showGameTitle === true
+    : !(titleIsHebrew && !gameIsRTL)
+
   return (
     <div>
       {cover && showHeadImage && (
@@ -99,10 +107,12 @@ export default function StoryPattern({ game }) {
         />
       )}
       <div style={styles.page}>
-        <div style={{ ...styles.header, direction: textDir(game.title), textAlign: textDir(game.title) === 'rtl' ? 'right' : 'left' }}>
-          <div style={styles.title}>{game.title}</div>
-          {game.description && <div style={{ ...styles.description, direction: textDir(game.description), textAlign: textDir(game.description) === 'rtl' ? 'right' : 'left' }}>{game.description}</div>}
-        </div>
+        {showGameTitle && (
+          <div style={{ ...styles.header, direction: textDir(game.title), textAlign: textDir(game.title) === 'rtl' ? 'right' : 'left' }}>
+            <div style={styles.title}>{game.title}</div>
+            {game.description && <div style={{ ...styles.description, direction: textDir(game.description), textAlign: textDir(game.description) === 'rtl' ? 'right' : 'left' }}>{game.description}</div>}
+          </div>
+        )}
         {game.sections?.map((slide, i) =>
           slide.map(section => renderSection(section, folderId))
         )}

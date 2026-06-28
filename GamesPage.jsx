@@ -124,17 +124,17 @@ export default function GamesPage({ onEdit }) {
     setTimeout(() => { setRebuilding(false); load(); }, 3000);
   };
 
-  const toggleHeadImage = async (g) => {
-    const newVal = !g.showHeadImage;
+  const toggleMeta = async (g, field) => {
+    const newVal = !g[field];
     await authFetch(`/api/games/${g.folderId}/meta`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ showHeadImage: newVal }),
+      body: JSON.stringify({ [field]: newVal }),
     });
-    setGames(gs => gs.map(x => x.folderId === g.folderId ? { ...x, showHeadImage: newVal } : x));
+    setGames(gs => gs.map(x => x.folderId === g.folderId ? { ...x, [field]: newVal } : x));
   };
 
-  const bulkEnableImages = async () => {
+  const bulkEnable = async (field, label) => {
     const filter = {
       ...(filterLang       ? { lang: filterLang }            : {}),
       ...(filterPattern    ? { pattern: filterPattern }       : {}),
@@ -145,10 +145,10 @@ export default function GamesPage({ onEdit }) {
     const r = await authFetch('/api/games/bulk-meta', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filter, meta: { showHeadImage: true } }),
+      body: JSON.stringify({ filter, meta: { [field]: true } }),
     });
     const data = await r.json();
-    alert(`הופעלו תמונות ל-${data.count} גיימים`);
+    alert(`${label} הופעל ל-${data.count} גיימים`);
     load();
   };
 
@@ -230,12 +230,16 @@ export default function GamesPage({ onEdit }) {
             <option key={t.value} value={t.value}>{t.label}</option>
           ))}
         </select>
-        {canBulk && (filterLang || filterPattern || filterContextTag || filterTeam || filterIssue) && (
+        {canBulk && (filterLang || filterPattern || filterContextTag || filterTeam || filterIssue) && (<>
           <button style={{ ...s.clearBtn, color: '#34d399', borderColor: 'rgba(52,211,153,0.3)' }}
-            onClick={bulkEnableImages} title="הפעל תמונת כותרת לכל התוצאות המסוננות">
+            onClick={() => bulkEnable('showHeadImage', '📷 תמונת כותרת')}>
             📷 הפעל תמונות לכולם
           </button>
-        )}
+          <button style={{ ...s.clearBtn, color: '#60a5fa', borderColor: 'rgba(96,165,250,0.3)' }}
+            onClick={() => bulkEnable('showGameTitle', '📝 כותרת גיים')}>
+            📝 הפעל כותרת לכולם
+          </button>
+        </>)}
         {(filterLang || filterIssue || filterPattern || filterTeam || filterContextTag || search) && (
           <button style={s.clearBtn} onClick={() => { setFilterLang(''); setFilterIssue(''); setFilterPattern(''); setFilterTeam(''); setFilterContextTag(''); setSearch(''); setPage(1); }}>✕ נקה</button>
         )}
@@ -393,9 +397,14 @@ export default function GamesPage({ onEdit }) {
                       <button style={s.actionBtn} onClick={() => onEdit(g.folderId)} title="ערוך">✏️</button>
                       <button style={s.actionBtn} onClick={() => window.open(`/game/${g.folderId}`, '_blank')} title="תצוגה מקדימה">👁</button>
                       <button style={{ ...s.actionBtn, color: g.showHeadImage ? '#34d399' : '#475569' }}
-                        onClick={() => toggleHeadImage(g)}
+                        onClick={() => toggleMeta(g, 'showHeadImage')}
                         title={g.showHeadImage ? 'תמונת כותרת פעילה — לחץ לכיבוי' : 'תמונת כותרת כבויה — לחץ להפעלה'}>
                         🖼
+                      </button>
+                      <button style={{ ...s.actionBtn, color: g.showGameTitle ? '#60a5fa' : '#475569' }}
+                        onClick={() => toggleMeta(g, 'showGameTitle')}
+                        title={g.showGameTitle ? 'כותרת גיים פעילה — לחץ לכיבוי' : 'כותרת גיים כבויה — לחץ להפעלה'}>
+                        📝
                       </button>
                       <button style={s.actionBtn} onClick={() => openMeta(g)} title="תייג">🏷</button>
                       <button style={s.actionBtn} onClick={() => handleDuplicate(g.folderId)} title="שכפל">⧉</button>
