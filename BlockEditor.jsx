@@ -192,13 +192,13 @@ function sectionsToBlocks(sections = []) {
         };
 
       case 'flipCardSection': {
-        // cards[] array or front/back fields
-        const cards = sec.cards || sec.slides || [];
-        const front = cards[0] || sec.front || {};
-        const back  = cards[1] || sec.back  || {};
-        const frontText = extractDeltaText(front.title || front.text) || front.text || '';
-        const backText  = extractDeltaText(back.title  || back.text)  || back.text  || '';
-        return { type: 'flip-card', id, front: { ...front, text: frontText }, back: { ...back, text: backText } };
+        const fm = sec.media?.frontMedia || {};
+        const bm = sec.media?.backMedia  || {};
+        return {
+          type: 'flip-card', id,
+          front: { text: fm.text || '', imageUrl: fm.backgroundMedia?.url || '', _raw: fm },
+          back:  { text: bm.text || '', imageUrl: bm.backgroundMedia?.url || '', _raw: bm },
+        };
       }
 
       case 'quoteSection':
@@ -215,7 +215,11 @@ function sectionsToBlocks(sections = []) {
         if (mt === 'video')     return { type: 'video',   id, url: media.originalVideoUrl || '', poster: '' };
         if (mt === 'iframe')    return { type: 'iframe',  id, url: media.url || '', height: 400 };
         if (mt === 'text-card') return { type: 'text',    id, content: extractDeltaText(sec.title) };
-        if (mt === 'flip-card') return { type: 'flip-card', id, front: media.frontMedia || {}, back: media.backMedia || {} };
+        if (mt === 'flip-card') {
+          const fm = media.frontMedia || {};
+          const bm = media.backMedia  || {};
+          return { type: 'flip-card', id, front: { text: fm.text || '', imageUrl: fm.backgroundMedia?.url || '', _raw: fm }, back: { text: bm.text || '', imageUrl: bm.backgroundMedia?.url || '', _raw: bm } };
+        }
         // Unknown — show as plain text so nothing is lost
         return { type: 'text', id, content: extractDeltaText(sec.title || sec.text) || '' };
     }
@@ -241,8 +245,11 @@ function blockToSection(block) {
       return { type: 'paragraphSection', title: deltaText(block.content || ''), text: deltaText('') };
     case 'separator':
       return { type: 'paragraphSection', title: deltaText(''), text: deltaText('') };
-    case 'flip-card':
-      return { type: 'flipCardSection', title: deltaText(''), front: block.front, back: block.back };
+    case 'flip-card': {
+      const fm = { ...(block.front._raw || {}), text: block.front.text };
+      const bm = { ...(block.back._raw  || {}), text: block.back.text  };
+      return { type: 'flipCardSection', title: deltaText(''), media: { mediaType: 'flip-card', ratio: 'landscape', frontMedia: fm, backMedia: bm } };
+    }
     case 'multiple-choice':
       return {
         type: 'triviaSection',
