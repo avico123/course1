@@ -51,7 +51,8 @@ function scanSections(sections = []) {
     if (!obj || typeof obj !== 'object') return;
     if (Array.isArray(obj)) { obj.forEach(walk); return; }
 
-    const url = obj.url || obj.originalImageUrl || obj.originalImageURL || obj.src || '';
+    const rawUrl = obj.url || obj.originalImageUrl || obj.originalImageURL || obj.src || '';
+    const url = typeof rawUrl === 'string' ? rawUrl : '';
     if (url) {
       if (isExternal(url)) {
         const t = obj.mediaType || '';
