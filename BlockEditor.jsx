@@ -147,7 +147,14 @@ export default function BlockEditor({ sections, onChange, gameId }) {
 
 function extractDeltaText(delta) {
   if (!delta) return '';
-  if (typeof delta === 'string') return delta;
+  // Handle JSON-stringified Delta
+  if (typeof delta === 'string') {
+    try {
+      const p = JSON.parse(delta);
+      if (p?.ops) return p.ops.map(op => typeof op.insert === 'string' ? op.insert : '').join('').replace(/\n$/, '').trim();
+    } catch {}
+    return delta;
+  }
   if (delta.ops) return delta.ops.map(op => typeof op.insert === 'string' ? op.insert : '').join('').replace(/\n$/, '').trim();
   return '';
 }
@@ -184,10 +191,18 @@ function sectionsToBlocks(sections = []) {
           answers: (sec.answers || []).map(a => ({ text: extractDeltaText(a.title || a.text), correct: !!a.isCorrect })),
         };
 
-      case 'flipCardSection':
-        return { type: 'flip-card', id, front: sec.front || { mediaType: 'text-card', text: '' }, back: sec.back || { mediaType: 'text-card', text: '' } };
+      case 'flipCardSection': {
+        // cards[] array or front/back fields
+        const cards = sec.cards || sec.slides || [];
+        const front = cards[0] || sec.front || {};
+        const back  = cards[1] || sec.back  || {};
+        const frontText = extractDeltaText(front.title || front.text) || front.text || '';
+        const backText  = extractDeltaText(back.title  || back.text)  || back.text  || '';
+        return { type: 'flip-card', id, front: { ...front, text: frontText }, back: { ...back, text: backText } };
+      }
 
       case 'quoteSection':
+      case 'convoSection':
         return { type: 'text', id, content: extractDeltaText(sec.text || sec.title) };
 
       case 'videoCreatorSection':
