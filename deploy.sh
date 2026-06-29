@@ -26,6 +26,9 @@ fetch "${RAW}/routes-games-updated.js"   "${SERVER_DIR}/server/routes/games.js"
 fetch "${RAW}/GamesPage.jsx"             "${SERVER_DIR}/client/src/admin/pages/GamesPage.jsx"
 fetch "${RAW}/GameEditorPage.jsx"        "${SERVER_DIR}/client/src/admin/pages/GameEditorPage.jsx"
 
+# ── Client: editor ───────────────────────────────────────────────────────────
+fetch "${RAW}/BlockEditor.jsx"           "${SERVER_DIR}/client/src/admin/editor/BlockEditor.jsx"
+
 # ── Client: game renderer ─────────────────────────────────────────────────────
 fetch "${RAW}/GameRenderer.jsx"          "${SERVER_DIR}/client/src/GameRenderer.jsx"
 fetch "${RAW}/StoryPattern.jsx"          "${SERVER_DIR}/client/src/components/patterns/StoryPattern.jsx"
