@@ -1,9 +1,9 @@
-import StoryPattern from "./patterns/StoryPattern";
-import GalleryPattern from "./patterns/GalleryPattern";
-import BigPicturePattern from "./patterns/BigPicturePattern";
-import TestYourselfPattern from "./patterns/TestYourselfPattern";
-import MultipleChoicePattern from "./patterns/MultipleChoicePattern";
-import GenericPattern from "./patterns/GenericPattern";
+import StoryPattern from "./components/patterns/StoryPattern";
+import GalleryPattern from "./components/patterns/GalleryPattern";
+import BigPicturePattern from "./components/patterns/BigPicturePattern";
+import TestYourselfPattern from "./components/patterns/TestYourselfPattern";
+import MultipleChoicePattern from "./components/patterns/MultipleChoicePattern";
+import GenericPattern from "./components/patterns/GenericPattern";
 
 function getDir(locale = '') {
   const rtlLocales = ['he', 'ar', 'fa', 'ur'];
