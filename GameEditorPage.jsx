@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../AuthContext';
 import BlockEditor from '../editor/BlockEditor';
+import GameRenderer from '../GameRenderer';
 
 const EXTERNAL_HOSTS = ['playbuzz.com', 'dpg4l7vn2owwv.cloudfront.net'];
 const isExternal = (url = '') => EXTERNAL_HOSTS.some(h => url.includes(h));
@@ -40,6 +41,30 @@ function replaceUrlInObj(obj, oldUrl, newUrl) {
   );
 }
 
+// Resizable split pane divider
+function Divider({ onResize }) {
+  const dragging = useRef(false);
+  const onMouseDown = (e) => {
+    dragging.current = true;
+    e.preventDefault();
+  };
+  useEffect(() => {
+    const onMove = (e) => { if (dragging.current) onResize(e.clientX); };
+    const onUp = () => { dragging.current = false; };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+  }, [onResize]);
+  return (
+    <div
+      onMouseDown={onMouseDown}
+      style={{ width: 6, background: 'rgba(255,255,255,0.04)', cursor: 'col-resize', flexShrink: 0, transition: 'background 0.15s', userSelect: 'none' }}
+      onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.4)'}
+      onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+    />
+  );
+}
+
 export default function GameEditorPage({ gameId, onBack }) {
   const { authFetch } = useAuth();
   const [game, setGame] = useState(null);
@@ -48,8 +73,11 @@ export default function GameEditorPage({ gameId, onBack }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [tab, setTab] = useState('editor');
-  const [fixUrls, setFixUrls] = useState({});   // { oldUrl: newUrl }
-  const [uploading, setUploading] = useState({}); // { oldUrl: true }
+  const [fixUrls, setFixUrls] = useState({});
+  const [uploading, setUploading] = useState({});
+  const [splitPct, setSplitPct] = useState(50); // editor pane width %
+  const [showPreview, setShowPreview] = useState(true);
+  const containerRef = useRef(null);
   const fileRefs = useRef({});
 
   useEffect(() => {
@@ -80,6 +108,13 @@ export default function GameEditorPage({ gameId, onBack }) {
     setTimeout(() => setSaved(false), 2000);
   };
 
+  const handleDividerResize = useCallback((clientX) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const pct = Math.max(25, Math.min(75, ((clientX - rect.left) / rect.width) * 100));
+    setSplitPct(pct);
+  }, []);
+
   const issues = findIssues(sections);
   const issueCount = issues.reduce((n, s) => n + s.items.length, 0);
 
@@ -104,6 +139,15 @@ export default function GameEditorPage({ gameId, onBack }) {
     setUploading(u => { const n = {...u}; delete n[oldUrl]; return n; });
   };
 
+  // Live preview game object — merges current edits into game data
+  const previewGame = game ? {
+    ...game,
+    ...meta,
+    sections,
+    _folderId: game._folderId,
+    _meta: game._meta,
+  } : null;
+
   if (!game) return <div style={{ color: '#64748b', textAlign: 'center', padding: 80 }}>טוען...</div>;
 
   return (
@@ -113,12 +157,28 @@ export default function GameEditorPage({ gameId, onBack }) {
         <button style={s.backBtn} onClick={onBack}>← חזרה</button>
         <div style={s.gameTitle}>{meta.title || 'ללא שם'}</div>
         <div style={s.tabs}>
-          {[['editor','עורך'], ['issues', issueCount ? `⚠ בעיות (${issueCount})` : 'בעיות'], ['meta','מטא-דטה'], ['preview','תצוגה מקדימה']].map(([k,l]) => (
-            <button key={k} style={{ ...s.tabBtn, ...(tab === k ? s.tabActive : {}), ...(k === 'issues' && issueCount ? { color: '#f87171' } : {}) }}
-              onClick={() => setTab(k)}>{l}</button>
+          {[
+            ['editor', 'עורך'],
+            ['issues', issueCount ? `⚠ בעיות (${issueCount})` : 'בעיות'],
+            ['meta', 'מטא-דטה'],
+          ].map(([k, l]) => (
+            <button
+              key={k}
+              style={{ ...s.tabBtn, ...(tab === k ? s.tabActive : {}), ...(k === 'issues' && issueCount ? { color: '#f87171' } : {}) }}
+              onClick={() => setTab(k)}
+            >{l}</button>
           ))}
         </div>
         <div style={s.actions}>
+          {tab === 'editor' && (
+            <button
+              style={{ ...s.togglePreviewBtn, ...(showPreview ? s.togglePreviewActive : {}) }}
+              onClick={() => setShowPreview(v => !v)}
+              title="הצג/הסתר תצוגה מקדימה"
+            >
+              👁 תצוגה מקדימה
+            </button>
+          )}
           <span style={{ ...s.statusBadge, background: meta.status === 'published' ? 'rgba(34,197,94,0.15)' : 'rgba(234,179,8,0.1)', color: meta.status === 'published' ? '#86efac' : '#fde047' }}>
             {meta.status === 'published' ? 'פורסם' : 'טיוטה'}
           </span>
@@ -132,11 +192,34 @@ export default function GameEditorPage({ gameId, onBack }) {
       </div>
 
       {/* Content */}
-      <div style={s.content}>
+      <div style={s.content} ref={containerRef}>
+
+        {/* EDITOR TAB — split pane */}
         {tab === 'editor' && (
-          <BlockEditor sections={sections} onChange={setSections} gameId={gameId} />
+          <div style={s.splitWrap}>
+            {/* Left: block editor */}
+            <div style={{ ...s.editorPane, width: showPreview ? `${splitPct}%` : '100%' }}>
+              <BlockEditor sections={sections} onChange={setSections} gameId={gameId} />
+            </div>
+
+            {/* Divider */}
+            {showPreview && <Divider onResize={handleDividerResize} />}
+
+            {/* Right: live preview */}
+            {showPreview && (
+              <div style={{ ...s.previewPane, width: `${100 - splitPct}%` }}>
+                <div style={s.previewLabel}>תצוגה מקדימה בזמן אמת</div>
+                <div style={s.previewScroll}>
+                  <div style={s.previewInner}>
+                    {previewGame && <GameRenderer game={previewGame} />}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
+        {/* ISSUES TAB */}
         {tab === 'issues' && (
           <div style={s.issuesWrap}>
             {issueCount === 0 ? (
@@ -155,37 +238,23 @@ export default function GameEditorPage({ gameId, onBack }) {
                           {type === 'broken-video' ? '🎬 וידאו שבור' : type === 'broken-image' ? '🖼 תמונה שבורה' : '🔗 קישור שבור'}
                         </div>
                         <div style={s.issueUrl} title={url}>{url.length > 70 ? url.slice(0, 70) + '…' : url}</div>
-
                         {type === 'broken-link' ? (
                           <div style={s.fixRow}>
-                            <input
-                              style={s.fixInput}
-                              placeholder="הדבק URL חדש..."
-                              value={fixUrls[url] || ''}
-                              onChange={e => setFixUrls(f => ({...f, [url]: e.target.value}))}
-                            />
+                            <input style={s.fixInput} placeholder="הדבק URL חדש..." value={fixUrls[url] || ''}
+                              onChange={e => setFixUrls(f => ({...f, [url]: e.target.value}))} />
                             <button style={s.fixBtn} onClick={() => applyFix(url, fixUrls[url])}>החלף</button>
                           </div>
                         ) : (
                           <div style={s.fixRow}>
-                            <input
-                              type="file"
-                              accept={type === 'broken-video' ? 'video/*' : 'image/*'}
-                              style={{ display: 'none' }}
-                              ref={el => fileRefs.current[url] = el}
-                              onChange={e => { if (e.target.files[0]) uploadFile(url, e.target.files[0]); }}
-                            />
-                            <button style={s.fixBtn} disabled={uploading[url]}
-                              onClick={() => fileRefs.current[url]?.click()}>
+                            <input type="file" accept={type === 'broken-video' ? 'video/*' : 'image/*'}
+                              style={{ display: 'none' }} ref={el => fileRefs.current[url] = el}
+                              onChange={e => { if (e.target.files[0]) uploadFile(url, e.target.files[0]); }} />
+                            <button style={s.fixBtn} disabled={uploading[url]} onClick={() => fileRefs.current[url]?.click()}>
                               {uploading[url] ? '⏳ מעלה...' : '📁 העלה קובץ'}
                             </button>
                             <span style={s.orText}>או</span>
-                            <input
-                              style={s.fixInput}
-                              placeholder="הדבק URL חדש..."
-                              value={fixUrls[url] || ''}
-                              onChange={e => setFixUrls(f => ({...f, [url]: e.target.value}))}
-                            />
+                            <input style={s.fixInput} placeholder="הדבק URL חדש..." value={fixUrls[url] || ''}
+                              onChange={e => setFixUrls(f => ({...f, [url]: e.target.value}))} />
                             <button style={s.fixBtn} onClick={() => applyFix(url, fixUrls[url])}>החלף</button>
                           </div>
                         )}
@@ -203,6 +272,7 @@ export default function GameEditorPage({ gameId, onBack }) {
           </div>
         )}
 
+        {/* META TAB */}
         {tab === 'meta' && (
           <div style={s.metaForm}>
             <h2 style={s.metaTitle}>פרטי הגיים</h2>
@@ -240,12 +310,6 @@ export default function GameEditorPage({ gameId, onBack }) {
             </div>
           </div>
         )}
-
-        {tab === 'preview' && (
-          <div style={s.previewWrap}>
-            <iframe src={`/game/${gameId}?embed=1`} style={s.previewFrame} title="preview" />
-          </div>
-        )}
       </div>
     </div>
   );
@@ -263,7 +327,19 @@ const s = {
   statusBadge: { fontSize: 12, padding: '4px 10px', borderRadius: 20, fontWeight: 600 },
   saveBtn: { background: '#1e2235', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#94a3b8', padding: '7px 16px', cursor: 'pointer', fontSize: 13 },
   publishBtn: { background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', border: 'none', borderRadius: 8, color: '#fff', padding: '7px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 600 },
+  togglePreviewBtn: { background: '#1e2235', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#64748b', padding: '7px 14px', cursor: 'pointer', fontSize: 13 },
+  togglePreviewActive: { background: 'rgba(99,102,241,0.15)', borderColor: 'rgba(99,102,241,0.4)', color: '#818cf8' },
   content: { flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' },
+
+  // Split pane
+  splitWrap: { flex: 1, display: 'flex', overflow: 'hidden' },
+  editorPane: { overflowY: 'auto', flexShrink: 0, borderLeft: '1px solid rgba(255,255,255,0.06)' },
+  previewPane: { display: 'flex', flexDirection: 'column', flexShrink: 0, background: '#f8fafc' },
+  previewLabel: { padding: '8px 16px', fontSize: 11, color: '#94a3b8', background: '#1a1d2e', borderBottom: '1px solid rgba(255,255,255,0.06)', textAlign: 'center', letterSpacing: 0.5 },
+  previewScroll: { flex: 1, overflowY: 'auto' },
+  previewInner: { background: '#fff', minHeight: '100%' },
+
+  // Issues
   issuesWrap: { padding: 32, maxWidth: 760, overflowY: 'auto', flex: 1 },
   noIssues: { color: '#34d399', fontSize: 18, textAlign: 'center', marginTop: 60 },
   issuesHint: { color: '#94a3b8', fontSize: 13, marginBottom: 24, lineHeight: 1.6 },
@@ -276,11 +352,11 @@ const s = {
   fixInput: { flex: 1, minWidth: 200, background: '#1a1d2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 12px', color: '#e2e8f0', fontSize: 13, outline: 'none', direction: 'ltr' },
   fixBtn: { background: '#334155', border: 'none', borderRadius: 8, color: '#e2e8f0', padding: '8px 16px', cursor: 'pointer', fontSize: 13, whiteSpace: 'nowrap' },
   orText: { color: '#475569', fontSize: 12 },
-  metaForm: { padding: 32, maxWidth: 600, direction: 'rtl' },
+
+  // Meta
+  metaForm: { padding: 32, maxWidth: 600, direction: 'rtl', overflowY: 'auto' },
   metaTitle: { color: '#f1f5f9', fontSize: 20, fontWeight: 700, margin: '0 0 24px' },
   field: { marginBottom: 16 },
   label: { fontSize: 12, color: '#64748b', marginBottom: 6, display: 'block' },
   inp: { background: '#1a1d2e', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '10px 12px', color: '#e2e8f0', fontSize: 14, width: '100%', boxSizing: 'border-box', outline: 'none', direction: 'rtl' },
-  previewWrap: { flex: 1, padding: 20 },
-  previewFrame: { width: '100%', height: '100%', border: 'none', borderRadius: 12, background: '#fff' },
 };
