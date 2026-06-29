@@ -104,4 +104,24 @@ if (fs.existsSync(blocksPath)) {
   console.log(`⚠️  Not found: ${blocksPath}`);
 }
 
+// ── 3. Guard renderDelta in all pattern files ────────────────────────────────
+
+const patternFiles = [
+  `${SERVER}/components/patterns/GalleryPattern.jsx`,
+  `${SERVER}/components/patterns/TestYourselfPattern.jsx`,
+  `${SERVER}/components/patterns/MultipleChoicePattern.jsx`,
+  `${SERVER}/components/patterns/QuoteSection.jsx`,
+];
+for (const pf of patternFiles) {
+  if (!fs.existsSync(pf)) { console.log(`⚠️  Not found: ${pf}`); continue; }
+  let src = fs.readFileSync(pf, 'utf8');
+  const before = src;
+  src = src.replace(/renderDelta\((\w+(?:\.\w+)*)\)/g, (m, v) => {
+    if (src.includes(`typeof ${v}`) ) return m;
+    return `typeof ${v} === 'string' ? ${v} : ${m}`;
+  });
+  if (src !== before) { fs.writeFileSync(pf, src); console.log(`✅ ${pf.split('/').pop()}: guarded renderDelta calls`); }
+  else console.log(`ℹ️  ${pf.split('/').pop()}: already guarded`);
+}
+
 console.log('\nDone.');

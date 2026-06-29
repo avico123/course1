@@ -37,7 +37,7 @@ function ParagraphSection({ section }) {
   return (
     <div style={styles.section}>
       {titleText && <div style={{ ...styles.sectionTitle, direction: textDir(titleText), textAlign: textDir(titleText) === 'rtl' ? 'right' : 'left' }}>{titleText}</div>}
-      <div style={{ ...styles.paragraph, direction: textDir(bodyText), textAlign: textDir(bodyText) === 'rtl' ? 'right' : 'left' }}>{renderDelta(section.text)}</div>
+      <div style={{ ...styles.paragraph, direction: textDir(bodyText), textAlign: textDir(bodyText) === 'rtl' ? 'right' : 'left' }}>{typeof section.text === 'string' ? section.text : renderDelta(section.text)}</div>
     </div>
   )
 }
