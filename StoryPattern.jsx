@@ -114,7 +114,9 @@ export default function StoryPattern({ game }) {
           </div>
         )}
         {game.sections?.map((slide, i) =>
-          slide.map(section => renderSection(section, folderId))
+          Array.isArray(slide)
+            ? slide.map(section => renderSection(section, folderId))
+            : renderSection(slide, folderId)
         )}
       </div>
     </div>

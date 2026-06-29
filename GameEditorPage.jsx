@@ -85,7 +85,8 @@ export default function GameEditorPage({ gameId, onBack }) {
       .then(r => r.json())
       .then(data => {
         setGame(data);
-        setSections(data.sections || []);
+        const raw = data.sections || [];
+        setSections(Array.isArray(raw[0]) ? raw : raw.map(s => [s]));
         setMeta({
           title: data.title || '',
           description: data.description || '',
