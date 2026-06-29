@@ -28,7 +28,7 @@ fetch "${RAW}/GameEditorPage.jsx"        "${SERVER_DIR}/client/src/admin/pages/G
 
 # ── Client: game renderer ─────────────────────────────────────────────────────
 fetch "${RAW}/GameRenderer.jsx"          "${SERVER_DIR}/client/src/GameRenderer.jsx"
-fetch "${RAW}/StoryPattern.jsx"          "${SERVER_DIR}/client/src/patterns/StoryPattern.jsx"
+fetch "${RAW}/StoryPattern.jsx"          "${SERVER_DIR}/client/src/components/patterns/StoryPattern.jsx"
 
 echo ""
 echo "=== Building client ==="
