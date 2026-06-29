@@ -29,7 +29,7 @@ function createBlock(type) {
     youtube:           { type, id, videoId: '', start: 0 },
     iframe:            { type, id, url: '', height: 400 },
     separator:         { type, id, style: 'line' },
-    'flip-card':       { type, id, front: { mediaType: 'text-card', text: 'חזית' }, back: { mediaType: 'text-card', text: 'גב' } },
+    'flip-card':       { type, id, frontText: 'חזית', backText: 'גב', frontImage: '', backImage: '' },
     'multiple-choice': { type, id, question: '', answers: [{ text: '', correct: false }, { text: '', correct: false }] },
     'open-question':   { type, id, question: '', placeholder: 'כתוב תשובתך כאן...' },
     'choose-answer':   { type, id, question: '', options: ['', '', '', ''], correct: 0 },
@@ -196,8 +196,8 @@ function sectionsToBlocks(sections = []) {
         const bm = sec.media?.backMedia  || {};
         return {
           type: 'flip-card', id,
-          front: { text: fm.text || '', imageUrl: fm.backgroundMedia?.url || '', _raw: fm },
-          back:  { text: bm.text || '', imageUrl: bm.backgroundMedia?.url || '', _raw: bm },
+          frontText: fm.text || '', frontImage: fm.backgroundMedia?.url || '', _rawFront: fm,
+          backText:  bm.text || '', backImage:  bm.backgroundMedia?.url || '', _rawBack:  bm,
         };
       }
 
@@ -218,7 +218,7 @@ function sectionsToBlocks(sections = []) {
         if (mt === 'flip-card') {
           const fm = media.frontMedia || {};
           const bm = media.backMedia  || {};
-          return { type: 'flip-card', id, front: { text: fm.text || '', imageUrl: fm.backgroundMedia?.url || '', _raw: fm }, back: { text: bm.text || '', imageUrl: bm.backgroundMedia?.url || '', _raw: bm } };
+          return { type: 'flip-card', id, frontText: fm.text || '', frontImage: fm.backgroundMedia?.url || '', _rawFront: fm, backText: bm.text || '', backImage: bm.backgroundMedia?.url || '', _rawBack: bm };
         }
         // Unknown — show as plain text so nothing is lost
         return { type: 'text', id, content: extractDeltaText(sec.title || sec.text) || '' };
@@ -246,8 +246,8 @@ function blockToSection(block) {
     case 'separator':
       return { type: 'paragraphSection', title: deltaText(''), text: deltaText('') };
     case 'flip-card': {
-      const fm = { ...(block.front._raw || {}), text: block.front.text };
-      const bm = { ...(block.back._raw  || {}), text: block.back.text  };
+      const fm = { ...(block._rawFront || {}), text: block.frontText || '' };
+      const bm = { ...(block._rawBack  || {}), text: block.backText  || '' };
       return { type: 'flipCardSection', title: deltaText(''), media: { mediaType: 'flip-card', ratio: 'landscape', frontMedia: fm, backMedia: bm } };
     }
     case 'multiple-choice':

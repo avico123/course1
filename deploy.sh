@@ -33,6 +33,11 @@ fetch "${RAW}/BlockEditor.jsx"           "${SERVER_DIR}/client/src/admin/editor/
 fetch "${RAW}/GameRenderer.jsx"          "${SERVER_DIR}/client/src/GameRenderer.jsx"
 fetch "${RAW}/StoryPattern.jsx"          "${SERVER_DIR}/client/src/components/patterns/StoryPattern.jsx"
 
+# ── Patch server-only files (FlipCardSection, blocks/index) ──────────────────
+fetch "${RAW}/fix-server.js"             "/tmp/fix-server.js"
+echo "=== Patching server files ==="
+node /tmp/fix-server.js
+
 echo ""
 echo "=== Building client ==="
 cd "${SERVER_DIR}/client"
