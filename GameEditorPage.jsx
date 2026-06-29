@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../AuthContext';
 import BlockEditor from '../editor/BlockEditor';
-import GameRenderer from '../GameRenderer';
+import GameRenderer from '../../GameRenderer';
 
 const EXTERNAL_HOSTS = ['playbuzz.com', 'dpg4l7vn2owwv.cloudfront.net'];
 const isExternal = (url = '') => EXTERNAL_HOSTS.some(h => url.includes(h));
