@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # deploy.sh — pull latest files from GitHub and deploy to playbuzz-renderer
-# First run: bash deploy.sh
-# Future runs: ./deploy.sh
+# Usage: bash deploy.sh
 set -e
 
 REPO="avico123/course1"
@@ -19,12 +18,17 @@ fetch() {
   curl -fsSL "$url" -o "$dest"
 }
 
-# Server files
+# ── Server files ──────────────────────────────────────────────────────────────
 fetch "${RAW}/scan-games.js"             "${SERVER_DIR}/server/scan-games.js"
 fetch "${RAW}/routes-games-updated.js"   "${SERVER_DIR}/server/routes/games.js"
 
-# Client file
+# ── Client: admin pages ───────────────────────────────────────────────────────
 fetch "${RAW}/GamesPage.jsx"             "${SERVER_DIR}/client/src/admin/pages/GamesPage.jsx"
+fetch "${RAW}/GameEditorPage.jsx"        "${SERVER_DIR}/client/src/admin/pages/GameEditorPage.jsx"
+
+# ── Client: game renderer ─────────────────────────────────────────────────────
+fetch "${RAW}/GameRenderer.jsx"          "${SERVER_DIR}/client/src/GameRenderer.jsx"
+fetch "${RAW}/StoryPattern.jsx"          "${SERVER_DIR}/client/src/patterns/StoryPattern.jsx"
 
 echo ""
 echo "=== Building client ==="
@@ -36,9 +40,8 @@ echo "=== Restarting server ==="
 pm2 restart all
 
 echo ""
-echo "=== Running index scan (background) ==="
-GAMES_DIR="${GAMES_DIR}" node "${SERVER_DIR}/server/scan-games.js" &
-echo "  Scan started (PID $!), takes ~30-60 seconds"
+echo "=== Running index scan ==="
+GAMES_DIR="${GAMES_DIR}" node "${SERVER_DIR}/server/scan-games.js"
 
 echo ""
 echo "✅ Deploy complete!"
