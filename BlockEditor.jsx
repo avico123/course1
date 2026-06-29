@@ -196,8 +196,8 @@ function sectionsToBlocks(sections = []) {
         const bm = sec.media?.backMedia  || {};
         return {
           type: 'flip-card', id,
-          frontText: fm.text || '', frontImage: fm.backgroundMedia?.url || '', _rawFront: fm,
-          backText:  bm.text || '', backImage:  bm.backgroundMedia?.url || '', _rawBack:  bm,
+          frontText: extractDeltaText(fm.text) || '', frontImage: fm.backgroundMedia?.url || '', _rawFront: fm,
+          backText:  extractDeltaText(bm.text) || '', backImage:  bm.backgroundMedia?.url || '', _rawBack:  bm,
         };
       }
 
@@ -218,7 +218,7 @@ function sectionsToBlocks(sections = []) {
         if (mt === 'flip-card') {
           const fm = media.frontMedia || {};
           const bm = media.backMedia  || {};
-          return { type: 'flip-card', id, frontText: fm.text || '', frontImage: fm.backgroundMedia?.url || '', _rawFront: fm, backText: bm.text || '', backImage: bm.backgroundMedia?.url || '', _rawBack: bm };
+          return { type: 'flip-card', id, frontText: extractDeltaText(fm.text) || '', frontImage: fm.backgroundMedia?.url || '', _rawFront: fm, backText: extractDeltaText(bm.text) || '', backImage: bm.backgroundMedia?.url || '', _rawBack: bm };
         }
         // Unknown — show as plain text so nothing is lost
         return { type: 'text', id, content: extractDeltaText(sec.title || sec.text) || '' };
