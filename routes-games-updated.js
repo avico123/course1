@@ -409,6 +409,17 @@ router.post('/:id/upload', requireAuth, requireRole('superadmin','admin','creato
   }
 );
 
+// ── GET /api/games/:id/files ─────────────────────────────────────────────────
+router.get('/:id/files', requireAuth, requireRole('superadmin','admin','creator'), (req, res) => {
+  const dir = path.join(GAMES_DIR, req.params.id, 'files');
+  if (!fs.existsSync(dir)) return res.json([]);
+  const IMAGE_EXT = /\.(jpg|jpeg|png|gif|webp)$/i;
+  const files = fs.readdirSync(dir)
+    .filter(f => IMAGE_EXT.test(f))
+    .map(f => ({ filename: f, url: `files/${f}`, servePath: `/game-files/${req.params.id}/${f}` }));
+  res.json(files);
+});
+
 // ── POST /api/games/:id/upload-video ─────────────────────────────────────────
 const videoStorage = multer.diskStorage({
   destination: (req, file, cb) => {
