@@ -177,7 +177,7 @@ function ImagePicker({ gameId, value, onChange }) {
     console.log('ℹ️  blocks/index.jsx: ImagePicker already present');
   }
 
-  // ── 2c. Replace FlipCardBlock ─────────────────────────────────────────────
+  // ── 2c. Replace FlipCardBlock (remove ALL occurrences, insert one clean copy) ─
 
   const newFlipCard = `function FlipCardBlock({ block, isEditing, onChange, gameId }) {
   const SIDES = [
@@ -215,23 +215,40 @@ function ImagePicker({ gameId, value, onChange }) {
     </div>
   );
 }
-
 `;
 
-  // Replace existing FlipCardBlock
-  if (src.includes('function FlipCardBlock')) {
-    const oldPattern = /function FlipCardBlock[\s\S]*?(?=\nfunction |\nexport |\nconst [A-Z])/;
-    const newSrc = src.replace(oldPattern, newFlipCard);
-    if (newSrc !== src) {
-      fs.writeFileSync(blocksPath, newSrc);
-      console.log('✅ blocks/index.jsx: FlipCardBlock updated with ImagePicker');
-    } else {
-      console.log('⚠️  blocks/index.jsx: FlipCardBlock pattern did not match — appending');
-      fs.writeFileSync(blocksPath, src + '\n' + newFlipCard);
+  // Remove ALL existing FlipCardBlock definitions (handles duplicates), then append one clean copy
+  src = fs.readFileSync(blocksPath, 'utf8');
+  let removedCount = 0;
+  // Remove each occurrence using a loop (regex can only match one at a time with reset)
+  let safety = 10;
+  while (src.includes('function FlipCardBlock') && safety-- > 0) {
+    // Find start of this FlipCardBlock
+    const start = src.indexOf('function FlipCardBlock');
+    // Find end: next top-level function/export/const after the closing brace
+    // Walk forward counting braces to find the function end
+    let depth = 0;
+    let i = start;
+    let inFunc = false;
+    while (i < src.length) {
+      if (src[i] === '{') { depth++; inFunc = true; }
+      else if (src[i] === '}') { depth--; if (inFunc && depth === 0) { i++; break; } }
+      i++;
     }
-  } else {
-    console.log('⚠️  blocks/index.jsx: FlipCardBlock not found — skipping replacement');
+    // Remove from start to i, collapsing any trailing blank lines
+    while (i < src.length && (src[i] === '\n' || src[i] === '\r')) i++;
+    src = src.slice(0, start) + src.slice(i);
+    removedCount++;
   }
+  // Append the new clean version before any trailing export block
+  const exportIdx = src.lastIndexOf('\nexport ');
+  if (exportIdx !== -1) {
+    src = src.slice(0, exportIdx) + '\n' + newFlipCard + '\n' + src.slice(exportIdx);
+  } else {
+    src = src + '\n' + newFlipCard;
+  }
+  fs.writeFileSync(blocksPath, src);
+  console.log(`✅ blocks/index.jsx: removed ${removedCount} old FlipCardBlock(s), inserted new one with ImagePicker`);
 } else {
   console.log(`⚠️  Not found: ${blocksPath}`);
 }
