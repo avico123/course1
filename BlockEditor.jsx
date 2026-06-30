@@ -248,7 +248,9 @@ function blockToSection(block) {
       return { type: 'paragraphSection', title: deltaText(''), text: deltaText('') };
     case 'flip-card': {
       const fm = { ...(block._rawFront || {}), text: block.frontText || '' };
+      if (block.frontImage) fm.backgroundMedia = { ...(fm.backgroundMedia || {}), url: block.frontImage };
       const bm = { ...(block._rawBack  || {}), text: block.backText  || '' };
+      if (block.backImage)  bm.backgroundMedia = { ...(bm.backgroundMedia  || {}), url: block.backImage };
       return { type: 'flipCardSection', title: deltaText(''), media: { mediaType: 'flip-card', ratio: 'landscape', frontMedia: fm, backMedia: bm } };
     }
     case 'multiple-choice':
