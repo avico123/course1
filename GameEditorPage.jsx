@@ -200,7 +200,7 @@ export default function GameEditorPage({ gameId, onBack }) {
           <div style={s.splitWrap}>
             {/* Left: block editor */}
             <div style={{ ...s.editorPane, width: showPreview ? `${splitPct}%` : '100%' }}>
-              <BlockEditor sections={sections} onChange={setSections} gameId={gameId} />
+              <BlockEditor sections={sections} onChange={setSections} gameId={gameId} authFetch={authFetch} />
             </div>
 
             {/* Divider */}

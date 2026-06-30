@@ -40,7 +40,7 @@ function createBlock(type) {
   return defaults[type] || { type, id };
 }
 
-export default function BlockEditor({ sections, onChange, gameId }) {
+export default function BlockEditor({ sections, onChange, gameId, authFetch }) {
   const [blocks, setBlocks] = useState(() => sectionsToBlocks(sections));
   const [dragIdx, setDragIdx] = useState(null);
   const [dragOverIdx, setDragOverIdx] = useState(null);
@@ -124,6 +124,7 @@ export default function BlockEditor({ sections, onChange, gameId }) {
                 isEditing={selected === block.id}
                 onChange={changes => updateBlock(block.id, changes)}
                 gameId={gameId}
+                authFetch={authFetch}
               />
             </div>
             {selected === block.id && (

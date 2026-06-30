@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 
-function ImagePicker({ gameId, value, onChange }) {
+function ImagePicker({ gameId, value, onChange, authFetch: af }) {
+  const apiFetch = af || fetch;
   const [browsing, setBrowsing] = useState(false);
   const [serverFiles, setServerFiles] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -12,7 +13,7 @@ function ImagePicker({ gameId, value, onChange }) {
     try {
       const fd = new FormData();
       fd.append('image', file);
-      const r = await fetch(`/api/games/${gameId}/upload`, { method: 'POST', body: fd });
+      const r = await apiFetch(`/api/games/${gameId}/upload`, { method: 'POST', body: fd });
       const d = await r.json();
       onChange(d.servePath || d.url || '');
     } catch (e) { console.error('Upload error', e); }
@@ -23,7 +24,7 @@ function ImagePicker({ gameId, value, onChange }) {
     setLoading(true);
     setBrowsing(true);
     try {
-      const r = await fetch(`/api/games/${gameId}/files`);
+      const r = await apiFetch(`/api/games/${gameId}/files`);
       setServerFiles(await r.json());
     } catch (e) { console.error('Browse error', e); }
     setLoading(false);
@@ -93,7 +94,7 @@ const SIDES = [
   { t: 'backText',  img: 'backImage',  name: 'גב'   },
 ];
 
-export default function FlipCardBlock({ block, isEditing, onChange, gameId }) {
+export default function FlipCardBlock({ block, isEditing, onChange, gameId, authFetch }) {
   if (!isEditing) {
     return (
       <div style={{ display: 'flex', gap: 12 }}>
@@ -119,7 +120,7 @@ export default function FlipCardBlock({ block, isEditing, onChange, gameId }) {
             onChange={e => { const ch = {}; ch[s.t] = e.target.value; onChange(ch); }}
           />
           <div style={{ fontSize: 11, color: '#64748b', marginTop: 10, marginBottom: 4 }}>תמונה</div>
-          <ImagePicker gameId={gameId} value={block[s.img] || ''} onChange={v => { const ch = {}; ch[s.img] = v; onChange(ch); }} />
+          <ImagePicker gameId={gameId} authFetch={authFetch} value={block[s.img] || ''} onChange={v => { const ch = {}; ch[s.img] = v; onChange(ch); }} />
         </div>
       ))}
     </div>
