@@ -42,15 +42,40 @@ const blocksPath = `${SERVER}/admin/editor/blocks/index.jsx`;
 if (fs.existsSync(blocksPath)) {
   let src = fs.readFileSync(blocksPath, 'utf8');
 
-  // ── 2a. Inject ImagePicker component if missing ─────────────────────────────
+  // ── 2a. Ensure useState/useRef are imported ────────────────────────────────
+  // blocks/index.jsx may use named imports; add useState/useRef if missing
+  if (/^import\s+.*from\s+['"]react['"]/m.test(src)) {
+    // Has a React import — ensure useState and useRef are included
+    src = src.replace(
+      /^(import\s+)(\{[^}]+\})(\s+from\s+['"]react['"])/m,
+      (m, pre, names, post) => {
+        let n = names;
+        if (!n.includes('useState')) n = n.replace('{', '{ useState,');
+        if (!n.includes('useRef'))   n = n.replace('{', '{ useRef,');
+        return pre + n + post;
+      }
+    );
+    // If it was a default import (import React from 'react'), add named alongside
+    if (!/import\s*\{/.test(src.split('\n').find(l => l.includes("from 'react'") || l.includes('from "react"')) || '')) {
+      src = src.replace(
+        /^(import\s+React\s+from\s+['"]react['"])/m,
+        "import React, { useState, useRef } from 'react'"
+      );
+    }
+    fs.writeFileSync(blocksPath, src);
+    console.log('✅ blocks/index.jsx: ensured useState/useRef imports');
+    src = fs.readFileSync(blocksPath, 'utf8');
+  }
+
+  // ── 2b. Inject ImagePicker component if missing ─────────────────────────────
   if (!src.includes('function ImagePicker')) {
     const imagePicker = `
 function ImagePicker({ gameId, value, onChange }) {
-  const [browsing, setBrowsing] = React.useState(false);
-  const [serverFiles, setServerFiles] = React.useState([]);
-  const [loading, setLoading] = React.useState(false);
-  const [uploading, setUploading] = React.useState(false);
-  const inputRef = React.useRef(null);
+  const [browsing, setBrowsing] = useState(false);
+  const [serverFiles, setServerFiles] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef(null);
 
   const upload = async (file) => {
     setUploading(true);
@@ -152,7 +177,7 @@ function ImagePicker({ gameId, value, onChange }) {
     console.log('ℹ️  blocks/index.jsx: ImagePicker already present');
   }
 
-  // ── 2b. Replace FlipCardBlock ─────────────────────────────────────────────
+  // ── 2c. Replace FlipCardBlock ─────────────────────────────────────────────
 
   const newFlipCard = `function FlipCardBlock({ block, isEditing, onChange, gameId }) {
   const SIDES = [
