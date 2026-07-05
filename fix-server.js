@@ -223,8 +223,12 @@ function ImagePicker({ gameId, value, onChange }) {
   // Remove each occurrence using a loop (regex can only match one at a time with reset)
   let safety = 10;
   while (src.includes('function FlipCardBlock') && safety-- > 0) {
-    // Find start of this FlipCardBlock
-    const start = src.indexOf('function FlipCardBlock');
+    // Find start of this FlipCardBlock — include optional leading 'export ' keyword
+    let start = src.indexOf('function FlipCardBlock');
+    const exportPrefix = 'export ';
+    if (start >= exportPrefix.length && src.slice(start - exportPrefix.length, start) === exportPrefix) {
+      start -= exportPrefix.length;
+    }
     // Find end: next top-level function/export/const after the closing brace
     // Walk forward counting braces to find the function end
     let depth = 0;
