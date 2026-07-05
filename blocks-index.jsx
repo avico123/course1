@@ -128,6 +128,7 @@ export function ImageBlock({ block, isEditing, onChange, gameId, authFetch }) {
         : <div style={{ height: 120, background: '#1e2235', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569' }}>🖼 תמונה</div>
       }
       {block.caption && <p style={{ fontSize: 13, color: '#94a3b8', marginTop: 6 }}>{block.caption}</p>}
+      {block.description && <p style={{ fontSize: 14, color: '#cbd5e1', marginTop: 6, lineHeight: 1.6, direction: 'rtl' }}>{block.description}</p>}
     </ViewWrap>
   );
 
@@ -138,6 +139,9 @@ export function ImageBlock({ block, isEditing, onChange, gameId, authFetch }) {
       </Field>
       <Field label="כיתוב">
         <input style={inp} value={block.caption || ''} onChange={e => onChange({ caption: e.target.value })} placeholder="תיאור תמונה..." />
+      </Field>
+      <Field label="טקסט">
+        <textarea style={{ ...inp, minHeight: 80, resize: 'vertical' }} value={block.description || ''} onChange={e => onChange({ description: e.target.value })} placeholder="טקסט מתחת לתמונה..." />
       </Field>
       <Field label="טקסט חלופי (Alt)">
         <input style={inp} value={block.alt || ''} onChange={e => onChange({ alt: e.target.value })} placeholder="alt text..." />

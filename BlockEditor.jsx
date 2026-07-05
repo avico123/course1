@@ -186,7 +186,7 @@ function sectionsToBlocks(sections = []) {
         if (mt === 'youtube') return { type: 'youtube', id, videoId: media.videoId || '', start: media.videoStart || 0 };
         if (mt === 'video')   return { type: 'video',   id, url: media.originalVideoUrl || media.url || '', poster: '' };
         if (mt === 'iframe')  return { type: 'iframe',  id, url: media.url || '', height: 400 };
-        return { type: 'image', id, url: media.url || media.originalImageUrl || '', alt: '', caption: extractDeltaText(sec.title) };
+        return { type: 'image', id, url: media.url || media.originalImageUrl || '', alt: '', caption: extractDeltaText(sec.title), description: extractDeltaText(sec.description) };
 
       case 'triviaSection':
         return {
@@ -236,7 +236,7 @@ function sectionsToBlocks(sections = []) {
 function blockToSection(block) {
   switch (block.type) {
     case 'image':
-      return { type: 'mediaSection', title: deltaText(block.caption || ''), media: { mediaType: 'image', url: block.url, originalImageUrl: block.url, alt: block.alt || '' } };
+      return { type: 'imageSection', title: deltaText(block.caption || ''), description: deltaText(block.description || ''), media: { mediaType: 'image', url: block.url, originalImageUrl: block.url, alt: block.alt || '' } };
     case 'youtube':
       return { type: 'mediaSection', title: deltaText(''), media: { mediaType: 'youtube', videoId: block.videoId, videoStart: block.start || 0 } };
     case 'video':
