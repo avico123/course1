@@ -205,6 +205,9 @@ function sectionsToBlocks(sections = []) {
         };
       }
 
+      case 'separatorSection':
+        return { type: 'separator', id, style: sec.style || 'line' };
+
       case 'quoteSection':
       case 'convoSection':
         return { type: 'text', id, content: extractDeltaText(sec.text || sec.title) };
@@ -248,7 +251,7 @@ function blockToSection(block) {
     case 'header':
       return { type: 'paragraphSection', title: deltaText(block.content || ''), text: deltaText('') };
     case 'separator':
-      return { type: 'paragraphSection', title: deltaText(''), text: deltaText('') };
+      return { type: 'separatorSection', style: block.style || 'line' };
     case 'flip-card': {
       const fm = { ...(block._rawFront || {}), text: block.frontText || '' };
       if (block.frontImage) fm.backgroundMedia = { ...(fm.backgroundMedia || {}), url: block.frontImage };

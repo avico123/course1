@@ -64,8 +64,19 @@ function ImageSection({ section, folderId }) {
   )
 }
 
+const separatorStyles = {
+  line:   { borderTop: '1px solid #e2e8f0', margin: '16px 0' },
+  thick:  { borderTop: '3px solid #cbd5e1', margin: '16px 0' },
+  dotted: { borderTop: '2px dotted #cbd5e1', margin: '16px 0' },
+  space:  { height: 40 },
+}
+
 function renderSection(section, folderId) {
   switch (section.type) {
+    case 'separatorSection': {
+      const sepStyle = separatorStyles[section.style] || separatorStyles.line
+      return <div key={section.id} style={sepStyle} />
+    }
     case 'paragraphSection': return <ParagraphSection key={section.id} section={section} />
     case 'imageSection':
     case 'mediaSection':     return <ImageSection key={section.id} section={section} folderId={folderId} />
