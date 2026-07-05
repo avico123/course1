@@ -83,7 +83,10 @@ export default function BlockEditor({ sections, onChange, gameId, authFetch }) {
     update(arr);
   };
 
-  const onDragStart = (e, idx) => { dragNode.current = idx; setDragIdx(idx); e.dataTransfer.effectAllowed = 'move'; };
+  const onDragStart = (e, idx) => {
+    if (['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(e.target.tagName)) { e.preventDefault(); return; }
+    dragNode.current = idx; setDragIdx(idx); e.dataTransfer.effectAllowed = 'move';
+  };
   const onDragOver  = (e, idx) => { e.preventDefault(); setDragOverIdx(idx); };
   const onDrop = (e, idx) => {
     e.preventDefault();
