@@ -42,6 +42,10 @@ fetch "${RAW}/fix-server.js"             "/tmp/fix-server.js"
 echo "=== Patching server files ==="
 node /tmp/fix-server.js
 
+# blocks-index.jsx is self-contained — restore it after fix-server.js patching
+echo "  → restoring blocks/index.jsx to clean version"
+fetch "${RAW}/blocks-index.jsx"          "${SERVER_DIR}/client/src/admin/editor/blocks/index.jsx"
+
 echo ""
 echo "=== Building client ==="
 cd "${SERVER_DIR}/client"
