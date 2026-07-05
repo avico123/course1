@@ -83,10 +83,7 @@ export default function BlockEditor({ sections, onChange, gameId, authFetch }) {
     update(arr);
   };
 
-  const onDragStart = (e, idx) => {
-    if (['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(e.target.tagName)) { e.preventDefault(); return; }
-    dragNode.current = idx; setDragIdx(idx); e.dataTransfer.effectAllowed = 'move';
-  };
+  const onHandleDragStart = (e, idx) => { dragNode.current = idx; setDragIdx(idx); e.dataTransfer.effectAllowed = 'move'; e.stopPropagation(); };
   const onDragOver  = (e, idx) => { e.preventDefault(); setDragOverIdx(idx); };
   const onDrop = (e, idx) => {
     e.preventDefault();
@@ -107,8 +104,6 @@ export default function BlockEditor({ sections, onChange, gameId, authFetch }) {
         {blocks.map((block, idx) => (
           <div
             key={block.id}
-            draggable
-            onDragStart={e => onDragStart(e, idx)}
             onDragOver={e => onDragOver(e, idx)}
             onDrop={e => onDrop(e, idx)}
             onDragEnd={() => { setDragIdx(null); setDragOverIdx(null); }}
@@ -120,7 +115,12 @@ export default function BlockEditor({ sections, onChange, gameId, authFetch }) {
             }}
             onClick={() => setSelected(block.id)}
           >
-            <div style={s.dragHandle} title="גרור לשינוי סדר">⠿</div>
+            <div
+              draggable
+              onDragStart={e => onHandleDragStart(e, idx)}
+              style={s.dragHandle}
+              title="גרור לשינוי סדר"
+            >⠿</div>
             <div style={s.blockContent}>
               <BlockRenderer
                 block={block}
