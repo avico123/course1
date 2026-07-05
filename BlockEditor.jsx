@@ -191,8 +191,8 @@ function sectionsToBlocks(sections = []) {
       case 'triviaSection':
         return {
           type: 'multiple-choice', id,
-          question: extractDeltaText(sec.question || sec.title),
-          answers: (sec.answers || []).map(a => ({ text: extractDeltaText(a.title || a.text), correct: !!a.isCorrect })),
+          question: extractDeltaText(sec.description || sec.question || sec.title),
+          answers: (sec.answers || []).map(a => ({ text: extractDeltaText(a.description || a.title || a.text), correct: !!a.isCorrect })),
         };
 
       case 'flipCardSection': {
@@ -262,8 +262,9 @@ function blockToSection(block) {
     case 'multiple-choice':
       return {
         type: 'triviaSection',
-        question: deltaText(block.question || ''),
-        answers: (block.answers || []).map(a => ({ title: deltaText(a.text), isCorrect: !!a.correct })),
+        title: deltaText('חידון'),
+        description: deltaText(block.question || ''),
+        answers: (block.answers || []).map(a => ({ title: deltaText(a.text), description: deltaText(a.text), isCorrect: !!a.correct })),
       };
     case 'open-question':
       return { type: 'paragraphSection', title: deltaText(block.question || ''), text: deltaText(block.placeholder || '') };
