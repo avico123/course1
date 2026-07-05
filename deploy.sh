@@ -30,6 +30,7 @@ fetch "${RAW}/GameEditorPage.jsx"        "${SERVER_DIR}/client/src/admin/pages/G
 fetch "${RAW}/BlockEditor.jsx"           "${SERVER_DIR}/client/src/admin/editor/BlockEditor.jsx"
 fetch "${RAW}/BlockRenderer.jsx"         "${SERVER_DIR}/client/src/admin/editor/BlockRenderer.jsx"
 fetch "${RAW}/FlipCardBlock.jsx"         "${SERVER_DIR}/client/src/admin/editor/blocks/FlipCardBlock.jsx"
+fetch "${RAW}/blocks-index.jsx"          "${SERVER_DIR}/client/src/admin/editor/blocks/index.jsx"
 
 # ── Client: game renderer ─────────────────────────────────────────────────────
 fetch "${RAW}/GameRenderer.jsx"          "${SERVER_DIR}/client/src/GameRenderer.jsx"
