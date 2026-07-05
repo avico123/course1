@@ -78,5 +78,32 @@ if (esrc.includes(oldSave)) {
 
 if (echanged) fs.writeFileSync(editorPath, esrc);
 
+// ── 3. StoryPattern.jsx — fix imgUrl for full /game-files/... paths ────────────
+
+const storyPath = `${SERVER}/components/patterns/StoryPattern.jsx`;
+let ssrc = fs.readFileSync(storyPath, 'utf8');
+
+const oldImgUrl = `function imgUrl(filePath, folderId) {
+  if (!filePath) return null
+  const filename = filePath.replace(/^files\\//, '')
+  return \`/game-files/\${folderId}/\${filename}\`
+}`;
+const newImgUrl = `function imgUrl(filePath, folderId) {
+  if (!filePath) return null
+  if (filePath.startsWith('http') || filePath.startsWith('/')) return filePath
+  const filename = filePath.replace(/^files\\//, '')
+  return \`/game-files/\${folderId}/\${filename}\`
+}`;
+
+if (ssrc.includes("if (filePath.startsWith('http')")) {
+  console.log('ℹ️  StoryPattern.jsx: imgUrl already handles full paths');
+} else if (ssrc.includes('filePath.replace(/^files')) {
+  ssrc = ssrc.replace(oldImgUrl, newImgUrl);
+  fs.writeFileSync(storyPath, ssrc);
+  console.log('✅ StoryPattern.jsx: imgUrl now handles /game-files/... and https:// paths');
+} else {
+  console.log('⚠️  StoryPattern.jsx: could not find imgUrl to patch');
+}
+
 console.log('\nPatch done. Now run:');
 console.log('  cd /opt/playbuzz-renderer/client && npm run build && pm2 restart all');

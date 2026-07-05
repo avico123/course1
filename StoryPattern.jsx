@@ -27,6 +27,7 @@ function textDir(str = '') {
 
 function imgUrl(filePath, folderId) {
   if (!filePath) return null
+  if (filePath.startsWith('http') || filePath.startsWith('/')) return filePath
   const filename = filePath.replace(/^files\//, '')
   return `/game-files/${folderId}/${filename}`
 }
