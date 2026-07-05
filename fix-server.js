@@ -178,6 +178,10 @@ function ImagePicker({ gameId, value, onChange }) {
   }
 
   // ── 2c. Replace FlipCardBlock (remove ALL occurrences, insert one clean copy) ─
+  // Skip if the deployed file already has the correct implementation (ImagePicker + frontText)
+  if (src.includes('function FlipCardBlock') && src.includes('ImagePicker') && src.includes('frontText')) {
+    console.log('ℹ️  blocks/index.jsx: FlipCardBlock already has correct implementation, skipping replacement');
+  } else {
 
   const newFlipCard = `function FlipCardBlock({ block, isEditing, onChange, gameId }) {
   const SIDES = [
@@ -253,6 +257,7 @@ function ImagePicker({ gameId, value, onChange }) {
   }
   fs.writeFileSync(blocksPath, src);
   console.log(`✅ blocks/index.jsx: removed ${removedCount} old FlipCardBlock(s), inserted new one with ImagePicker`);
+  } // end else (replacement needed)
 } else {
   console.log(`⚠️  Not found: ${blocksPath}`);
 }
