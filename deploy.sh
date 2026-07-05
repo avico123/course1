@@ -4,7 +4,7 @@
 set -e
 
 REPO="avico123/course1"
-BRANCH="claude/jolly-tesla-7slsu3"
+BRANCH="claude/text-input-issue-k1uynr"
 RAW="https://raw.githubusercontent.com/${REPO}/${BRANCH}"
 SERVER_DIR="/opt/playbuzz-renderer"
 GAMES_DIR="${GAMES_DIR:-/mnt/data/games}"
