@@ -1,3 +1,4 @@
+// @deployed-from-github — fix-server.js must skip blocks patching for this file
 import { useState, useRef } from 'react';
 
 // ─── Shared styles ────────────────────────────────────────────────────────────

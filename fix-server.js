@@ -42,6 +42,11 @@ const blocksPath = `${SERVER}/admin/editor/blocks/index.jsx`;
 if (fs.existsSync(blocksPath)) {
   let src = fs.readFileSync(blocksPath, 'utf8');
 
+  // If deployed from GitHub, it already has all fixes — skip patching to avoid corruption
+  if (src.includes('@deployed-from-github')) {
+    console.log('ℹ️  blocks/index.jsx: deployed-from-github, skipping all patches');
+  } else {
+
   // ── 2a. Ensure useState/useRef are imported ────────────────────────────────
   // blocks/index.jsx may use named imports; add useState/useRef if missing
   if (/^import\s+.*from\s+['"]react['"]/m.test(src)) {
@@ -249,6 +254,7 @@ function ImagePicker({ gameId, value, onChange }) {
   }
   fs.writeFileSync(blocksPath, src);
   console.log(`✅ blocks/index.jsx: removed ${removedCount} old FlipCardBlock(s), inserted new one with ImagePicker`);
+  } // end else (not deployed-from-github)
 } else {
   console.log(`⚠️  Not found: ${blocksPath}`);
 }
