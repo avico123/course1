@@ -36,6 +36,7 @@ fetch "${RAW}/blocks-index.jsx"          "${SERVER_DIR}/client/src/admin/editor/
 fetch "${RAW}/GameRenderer.jsx"          "${SERVER_DIR}/client/src/GameRenderer.jsx"
 fetch "${RAW}/StoryPattern.jsx"          "${SERVER_DIR}/client/src/components/patterns/StoryPattern.jsx"
 fetch "${RAW}/FlipCardSection.jsx"       "${SERVER_DIR}/client/src/components/patterns/FlipCardSection.jsx"
+fetch "${RAW}/TriviaSection.jsx"         "${SERVER_DIR}/client/src/components/patterns/TriviaSection.jsx"
 
 # ── Patch server-only files (FlipCardSection, blocks/index) ──────────────────
 fetch "${RAW}/fix-server.js"             "/tmp/fix-server.js"
