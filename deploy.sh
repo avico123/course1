@@ -42,6 +42,9 @@ fetch "${RAW}/fix-server.js"             "/tmp/fix-server.js"
 echo "=== Patching server files ==="
 node /tmp/fix-server.js
 
+# ── Dump server sources for review (creates /tmp/src-dump/) ──────────────────
+fetch "${RAW}/dump-src.sh"               "/tmp/dump-src.sh"
+
 echo ""
 echo "=== Building client ==="
 cd "${SERVER_DIR}/client"

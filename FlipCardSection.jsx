@@ -1,6 +1,14 @@
 import { useState } from 'react';
 import { renderDelta } from '../deltaRenderer.jsx';
 
+// Extract plain text from a Quill delta or return the string as-is
+function extractText(val) {
+  if (!val) return '';
+  if (typeof val === 'string') return val;
+  if (val?.ops) return val.ops.map(o => (typeof o.insert === 'string' ? o.insert : '')).join('');
+  return String(val);
+}
+
 function imgUrl(filePath, folderId) {
   if (!filePath) return null;
   if (filePath.startsWith('http') || filePath.startsWith('/')) return filePath;
@@ -17,8 +25,9 @@ export default function FlipCardSection({ section, folderId }) {
   const frontImg = front.backgroundMedia?.url || imgUrl(front.backgroundMedia?.originalImageUrl, folderId);
   const backImg  = back.backgroundMedia?.url  || imgUrl(back.backgroundMedia?.originalImageUrl, folderId);
 
-  const frontText = typeof front.text === 'string' ? front.text : renderDelta(front.text);
-  const backText  = typeof back.text  === 'string' ? back.text  : renderDelta(back.text);
+  // Use plain text to avoid bidi punctuation scrambling from delta spans
+  const frontText = extractText(front.text);
+  const backText  = extractText(back.text);
 
   return (
     <div
@@ -50,7 +59,7 @@ export default function FlipCardSection({ section, folderId }) {
           padding: 24, boxSizing: 'border-box', minHeight: 200,
         }}>
           {frontImg && <img src={frontImg} alt="" style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 8, marginBottom: 12 }} />}
-          <div style={{ fontSize: 18, color: '#e2e8f0', textAlign: 'center', direction: 'rtl' }}>{frontText}</div>
+          <div style={{ fontSize: 18, color: '#e2e8f0', textAlign: 'center', direction: 'rtl', unicodeBidi: 'embed', whiteSpace: 'pre-wrap' }}>{frontText}</div>
           <div style={{ position: 'absolute', bottom: 10, right: 14, fontSize: 11, color: '#475569' }}>לחץ להפיכה ↩</div>
         </div>
 

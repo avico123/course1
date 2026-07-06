@@ -7,7 +7,7 @@ import QuoteSection from './QuoteSection.jsx'
 import VideoCreatorSection from './VideoCreatorSection.jsx'
 
 const styles = {
-  page: { maxWidth: 760, margin: '0 auto', padding: '0 20px 60px' },
+  page: { maxWidth: 760, margin: '0 auto', padding: '0 20px 60px', overflowX: 'hidden' },
   cover: { width: '100%', maxHeight: 400, objectFit: 'cover', display: 'block' },
   header: { background: 'white', padding: '24px 0 16px', borderBottom: '1px solid #eee', marginBottom: 24 },
   title: { fontSize: 28, fontWeight: 'bold', lineHeight: 1.4, color: '#1a1a1a' },
