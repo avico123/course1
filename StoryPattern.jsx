@@ -42,21 +42,53 @@ function ParagraphSection({ section }) {
   )
 }
 
-function ImageSection({ section, folderId }) {
-  const media = section.media
-  if (!media?.url) return null
+function MediaSection({ section, folderId }) {
+  const media = section.media || {}
+  const mt = media.mediaType
   const titleText = section.title?.ops?.map(o => o.insert).join('').replace(/\n/g, '').trim()
   const caption = section.caption || section.description?.ops?.map(o => o.insert).join('').trim()
 
-  return (
-    <div style={styles.section}>
-      {titleText && <div style={{ ...styles.sectionTitle, direction: textDir(titleText), textAlign: textDir(titleText) === 'rtl' ? 'right' : 'left' }}>{titleText}</div>}
+  let content = null
+
+  if (mt === 'youtube' || media.videoId) {
+    const videoId = media.videoId
+    const start = media.videoStart || 0
+    if (!videoId) return null
+    content = (
+      <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', borderRadius: 8 }}>
+        <iframe
+          src={`https://www.youtube.com/embed/${videoId}?start=${start}`}
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+          allowFullScreen
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        />
+      </div>
+    )
+  } else if (mt === 'video') {
+    const url = media.originalVideoUrl || media.url
+    if (!url) return null
+    content = <video src={url} controls style={{ width: '100%', borderRadius: 8, display: 'block' }} />
+  } else if (mt === 'iframe') {
+    const url = media.url
+    if (!url) return null
+    content = <iframe src={url} width="100%" height={media.height || 400} style={{ border: 'none', borderRadius: 8, display: 'block' }} />
+  } else {
+    const url = media.url || media.originalImageUrl
+    if (!url) return null
+    content = (
       <img
-        src={imgUrl(media.url, folderId)}
+        src={imgUrl(url, folderId)}
         alt={media.alt || caption || ''}
         style={styles.image}
         onError={e => { e.target.style.display = 'none' }}
       />
+    )
+  }
+
+  return (
+    <div style={styles.section}>
+      {titleText && <div style={{ ...styles.sectionTitle, direction: textDir(titleText), textAlign: textDir(titleText) === 'rtl' ? 'right' : 'left' }}>{titleText}</div>}
+      {content}
       {caption && <div style={styles.caption}>{caption}</div>}
       {media.credits && <div style={styles.credits}>© {media.credits}</div>}
     </div>
@@ -67,7 +99,7 @@ function renderSection(section, folderId) {
   switch (section.type) {
     case 'paragraphSection': return <ParagraphSection key={section.id} section={section} />
     case 'imageSection':
-    case 'mediaSection':     return <ImageSection key={section.id} section={section} folderId={folderId} />
+    case 'mediaSection':     return <MediaSection key={section.id} section={section} folderId={folderId} />
     case 'triviaSection':    return <TriviaSection key={section.id} section={section} folderId={folderId} />
     case 'flipCardSection':  return <FlipCardSection key={section.id} section={section} folderId={folderId} />
     case 'convoSection':     return <ConvoSection key={section.id} section={section} folderId={folderId} />
