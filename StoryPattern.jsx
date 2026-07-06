@@ -54,16 +54,27 @@ function MediaSection({ section, folderId }) {
     const videoId = media.videoId
     const start = media.videoStart || 0
     if (!videoId) return null
-    content = (
-      <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', borderRadius: 8 }}>
-        <iframe
-          src={`https://www.youtube.com/embed/${videoId}?start=${start}`}
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
-          allowFullScreen
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        />
-      </div>
-    )
+    // Numeric-only IDs are legacy Brightcove IDs — not YouTube, cannot embed
+    if (/^\d{8,}$/.test(videoId)) {
+      content = (
+        <div style={{ background: '#1a1a2e', borderRadius: 8, padding: '32px 24px', textAlign: 'center', color: '#9ca3af', direction: 'rtl' }}>
+          <div style={{ fontSize: 36, marginBottom: 12 }}>🎬</div>
+          <div style={{ fontSize: 16, fontWeight: 'bold', color: '#e5e7eb', marginBottom: 8 }}>הסרטון אינו זמין</div>
+          <div style={{ fontSize: 13 }}>הסרטון המקורי לא הועלה ל-YouTube ואינו ניתן להצגה במערכת זו.</div>
+        </div>
+      )
+    } else {
+      content = (
+        <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', borderRadius: 8 }}>
+          <iframe
+            src={`https://www.youtube.com/embed/${videoId}?start=${start}`}
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+            allowFullScreen
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          />
+        </div>
+      )
+    }
   } else if (mt === 'video') {
     const url = media.originalVideoUrl || media.url
     if (!url) return null
