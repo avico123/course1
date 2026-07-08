@@ -18,6 +18,24 @@ const ISSUE_LABELS = {
   'broken-link':  '🔗 קישור שבור',
 };
 
+const LS_FAV    = 'pb_favorites';   // string[]  of folderId
+const LS_RECENT = 'pb_recent';      // [{id,title,ts}]
+
+function loadFavorites() {
+  try { return JSON.parse(localStorage.getItem(LS_FAV) || '[]'); } catch { return []; }
+}
+function saveFavorites(arr) {
+  localStorage.setItem(LS_FAV, JSON.stringify(arr));
+}
+function loadRecent() {
+  try { return JSON.parse(localStorage.getItem(LS_RECENT) || '[]'); } catch { return []; }
+}
+function pushRecent(id, title) {
+  const list = loadRecent().filter(r => r.id !== id);
+  list.unshift({ id, title: title || id, ts: Date.now() });
+  localStorage.setItem(LS_RECENT, JSON.stringify(list.slice(0, 10)));
+}
+
 export default function GamesPage({ onEdit }) {
   const { authFetch, user } = useAuth();
   const [games, setGames]       = useState([]);
@@ -26,36 +44,43 @@ export default function GamesPage({ onEdit }) {
   const [search, setSearch]     = useState('');
   const [page, setPage]         = useState(1);
   const [filterLang, setFilterLang]         = useState('');
-  const [filterIssue, setFilterIssue]       = useState(''); // specific issue type, not boolean
+  const [filterIssue, setFilterIssue]       = useState('');
   const [filterPattern, setFilterPattern]   = useState('');
   const [filterTeam, setFilterTeam]         = useState('');
-  const [filterContextTag, setFilterContextTag] = useState('');
+  const [filterTags, setFilterTags]         = useState([]); // multi-select
   const [stats, setStats]       = useState(null);
   const [indexInfo, setIndexInfo] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [newGame, setNewGame]   = useState({ title: '', patternId: 'Story', locale: 'he-IL' });
-  const [metaPanel, setMetaPanel] = useState(null); // gameId being tagged
+  const [metaPanel, setMetaPanel] = useState(null);
   const [metaForm, setMetaForm]   = useState({ status: '', note: '', assignedTo: '' });
   const [rebuilding, setRebuilding] = useState(false);
+  const [advOpen, setAdvOpen]   = useState(false);
+  const [favorites, setFavorites] = useState(loadFavorites);
+  const [recent, setRecent]     = useState(loadRecent);
+  const [showFavOnly, setShowFavOnly] = useState(false);
   const searchTimeout = useRef(null);
+  const searchRef = useRef(null);
   const limit = 50;
 
-  // Load stats once
   useEffect(() => {
     authFetch('/api/games/stats').then(r => r.json()).then(setStats).catch(() => {});
     authFetch('/api/games/index-status').then(r => r.json()).then(setIndexInfo).catch(() => {});
   }, []);
 
+  // For favorites filtering we pass folderId list or client-filter
+  const contextTag = filterTags.length === 1 ? filterTags[0] : '';
+
   const load = useCallback(async () => {
     setLoading(true);
     const params = new URLSearchParams({
       page, limit,
-      ...(search           ? { search }                       : {}),
-      ...(filterLang       ? { lang: filterLang }             : {}),
-      ...(filterIssue      ? { issueType: filterIssue }        : {}),
-      ...(filterPattern    ? { pattern: filterPattern }        : {}),
-      ...(filterTeam       ? { teamStatus: filterTeam }       : {}),
-      ...(filterContextTag ? { contextTag: filterContextTag } : {}),
+      ...(search        ? { search }                    : {}),
+      ...(filterLang    ? { lang: filterLang }          : {}),
+      ...(filterIssue   ? { issueType: filterIssue }    : {}),
+      ...(filterPattern ? { pattern: filterPattern }    : {}),
+      ...(filterTeam    ? { teamStatus: filterTeam }    : {}),
+      ...(contextTag    ? { contextTag }                : {}),
     });
     const r    = await authFetch(`/api/games?${params}`);
     const data = await r.json();
@@ -63,7 +88,7 @@ export default function GamesPage({ onEdit }) {
     setTotal(data.total || 0);
     if (data.indexBuiltAt) setIndexInfo(i => ({ ...i, builtAt: data.indexBuiltAt }));
     setLoading(false);
-  }, [page, search, filterLang, filterIssue, filterPattern, filterTeam, filterContextTag]);
+  }, [page, search, filterLang, filterIssue, filterPattern, filterTeam, contextTag]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -72,11 +97,17 @@ export default function GamesPage({ onEdit }) {
     searchTimeout.current = setTimeout(() => { setSearch(v); setPage(1); }, 300);
   };
 
+  const handleEdit = (id, title) => {
+    pushRecent(id, title);
+    setRecent(loadRecent());
+    onEdit(id);
+  };
+
   const handleCreate = async () => {
     if (!newGame.title.trim()) return;
     const r    = await authFetch('/api/games', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newGame) });
     const data = await r.json();
-    if (data.itemId) { setShowCreate(false); setNewGame({ title: '', patternId: 'Story', locale: 'he-IL' }); onEdit(data.itemId); }
+    if (data.itemId) { setShowCreate(false); setNewGame({ title: '', patternId: 'Story', locale: 'he-IL' }); handleEdit(data.itemId, newGame.title); }
   };
 
   const handleDelete = async (id, title) => {
@@ -89,6 +120,12 @@ export default function GamesPage({ onEdit }) {
     const r = await authFetch(`/api/games/${id}/duplicate`, { method: 'POST' });
     const data = await r.json();
     if (data.itemId) load();
+  };
+
+  const toggleFavorite = (id) => {
+    const next = favorites.includes(id) ? favorites.filter(f => f !== id) : [...favorites, id];
+    setFavorites(next);
+    saveFavorites(next);
   };
 
   const openMeta = (g) => {
@@ -136,11 +173,11 @@ export default function GamesPage({ onEdit }) {
 
   const bulkEnable = async (field, label) => {
     const filter = {
-      ...(filterLang       ? { lang: filterLang }            : {}),
-      ...(filterPattern    ? { pattern: filterPattern }       : {}),
-      ...(filterContextTag ? { contextTag: filterContextTag } : {}),
-      ...(filterTeam       ? { teamStatus: filterTeam }      : {}),
-      ...(filterIssue      ? { issueType: filterIssue }      : {}),
+      ...(filterLang    ? { lang: filterLang }         : {}),
+      ...(filterPattern ? { pattern: filterPattern }   : {}),
+      ...(contextTag    ? { contextTag }               : {}),
+      ...(filterTeam    ? { teamStatus: filterTeam }   : {}),
+      ...(filterIssue   ? { issueType: filterIssue }   : {}),
     };
     const r = await authFetch('/api/games/bulk-meta', {
       method: 'POST',
@@ -152,10 +189,32 @@ export default function GamesPage({ onEdit }) {
     load();
   };
 
+  const clearAll = () => {
+    setFilterLang(''); setFilterIssue(''); setFilterPattern('');
+    setFilterTeam(''); setFilterTags([]); setShowFavOnly(false);
+    setSearch(''); setPage(1);
+    if (searchRef.current) searchRef.current.value = '';
+  };
+
+  const toggleTag = (tag) => {
+    setFilterTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
+    setPage(1);
+  };
+
+  // Client-side favorites filter on top of server results
+  const displayGames = showFavOnly ? games.filter(g => favorites.includes(g.folderId)) : games;
+  // Client-side multi-tag filter (when >1 tag selected, server only handles 1)
+  const visibleGames = filterTags.length > 1
+    ? displayGames.filter(g => filterTags.every(t => (g.contextTags || []).includes(t)))
+    : displayGames;
+
+  const hasFilters = filterLang || filterIssue || filterPattern || filterTeam || filterTags.length || showFavOnly || search;
+
   const canDelete  = ['superadmin', 'admin'].includes(user?.role);
   const canRebuild = ['superadmin', 'admin'].includes(user?.role);
   const canBulk    = ['superadmin', 'admin'].includes(user?.role);
   const totalPages = Math.ceil(total / limit);
+  const allTags = Object.keys(stats?.contextTags || {}).sort((a, b) => a.localeCompare(b, 'he'));
 
   return (
     <div style={s.root}>
@@ -167,7 +226,8 @@ export default function GamesPage({ onEdit }) {
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           {canRebuild && (
-            <button style={s.rebuildBtn} onClick={rebuildIndex} disabled={rebuilding} title={indexInfo?.builtAt ? `אינדקס נבנה: ${new Date(indexInfo.builtAt).toLocaleString('he')}` : 'אין אינדקס'}>
+            <button style={s.rebuildBtn} onClick={rebuildIndex} disabled={rebuilding}
+              title={indexInfo?.builtAt ? `אינדקס נבנה: ${new Date(indexInfo.builtAt).toLocaleString('he')}` : 'אין אינדקס'}>
               {rebuilding ? '⏳ סורק...' : '🔄 סרוק מחדש'}
             </button>
           )}
@@ -182,68 +242,152 @@ export default function GamesPage({ onEdit }) {
         </div>
       )}
 
-      {/* Stats bar */}
-      {stats && (
-        <div style={s.statsBar}>
-          {Object.entries(stats.langs || {}).map(([lang, count]) => (
-            <button key={lang} style={{ ...s.statChip, borderColor: filterLang === lang ? LANG_COLORS[lang] : 'transparent', color: LANG_COLORS[lang] || '#94a3b8' }}
-              onClick={() => { setFilterLang(filterLang === lang ? '' : lang); setPage(1); }}>
-              {LANG_LABELS[lang] || lang} <span style={s.chipCount}>{count}</span>
-            </button>
-          ))}
-          <div style={s.statDivider} />
-          {Object.entries(stats.issues || {}).map(([iss, count]) => (
-            <button key={iss} style={{ ...s.statChip, borderColor: filterIssue === iss ? '#f87171' : 'transparent', color: '#f87171' }}
-              onClick={() => { setFilterIssue(filterIssue === iss ? '' : iss); setPage(1); }}>
-              {ISSUE_LABELS[iss] || iss} <span style={s.chipCount}>{count}</span>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Search + filters */}
-      <div style={s.filterRow}>
+      {/* Search bar + advanced toggle */}
+      <div style={s.searchBar}>
         <input
-          style={{ ...s.search, flex: 2 }}
+          ref={searchRef}
+          style={s.searchInput}
           defaultValue={search}
           onChange={e => handleSearchChange(e.target.value)}
           placeholder="🔍  חיפוש לפי כותרת..."
         />
-        <select style={s.select} value={filterPattern} onChange={e => { setFilterPattern(e.target.value); setPage(1); }}>
-          <option value="">כל הסוגים</option>
-          {Object.keys(stats?.patterns || {}).sort().map(p => (
-            <option key={p} value={p}>{p} ({stats.patterns[p]})</option>
-          ))}
-        </select>
-        <select style={s.select} value={filterContextTag} onChange={e => { setFilterContextTag(e.target.value); setPage(1); }}>
-          <option value="">כל ההקשרים</option>
-          {Object.entries(stats?.contextTags || {})
-            .sort((a, b) => a[0].localeCompare(b[0], 'he'))
-            .map(([tag, count]) => (
-              <option key={tag} value={tag}>{tag} ({count})</option>
-            ))
-          }
-        </select>
-        <select style={s.select} value={filterTeam} onChange={e => { setFilterTeam(e.target.value); setPage(1); }}>
-          <option value="">כל הסטטוסים</option>
-          {TEAM_STATUSES.filter(t => t.value).map(t => (
-            <option key={t.value} value={t.value}>{t.label}</option>
-          ))}
-        </select>
-        {canBulk && (filterLang || filterPattern || filterContextTag || filterTeam || filterIssue) && (<>
-          <button style={{ ...s.clearBtn, color: '#34d399', borderColor: 'rgba(52,211,153,0.3)' }}
-            onClick={() => bulkEnable('showHeadImage', '📷 תמונת כותרת')}>
-            📷 הפעל תמונות לכולם
-          </button>
-          <button style={{ ...s.clearBtn, color: '#60a5fa', borderColor: 'rgba(96,165,250,0.3)' }}
-            onClick={() => bulkEnable('showGameTitle', '📝 כותרת גיים')}>
-            📝 הפעל כותרת לכולם
-          </button>
-        </>)}
-        {(filterLang || filterIssue || filterPattern || filterTeam || filterContextTag || search) && (
-          <button style={s.clearBtn} onClick={() => { setFilterLang(''); setFilterIssue(''); setFilterPattern(''); setFilterTeam(''); setFilterContextTag(''); setSearch(''); setPage(1); }}>✕ נקה</button>
+        <button
+          style={{ ...s.advBtn, ...(advOpen ? s.advBtnOpen : {}) }}
+          onClick={() => setAdvOpen(o => !o)}
+        >
+          🔍 מתקדם {advOpen ? '▲' : '▾'}
+          {hasFilters && <span style={s.filterDot} />}
+        </button>
+        {hasFilters && (
+          <button style={s.clearBtn} onClick={clearAll}>✕ נקה הכל</button>
         )}
       </div>
+
+      {/* Advanced panel */}
+      {advOpen && (
+        <div style={s.advPanel}>
+          {/* Row 1: Language + Pattern + Team + Issue */}
+          <div style={s.advRow}>
+            <div style={s.advGroup}>
+              <div style={s.advLabel}>שפה</div>
+              <div style={s.chipRow}>
+                {Object.entries(stats?.langs || {}).map(([lang, count]) => (
+                  <button key={lang}
+                    style={{ ...s.chip, ...(filterLang === lang ? { borderColor: LANG_COLORS[lang], color: LANG_COLORS[lang], background: 'rgba(255,255,255,0.07)' } : { color: LANG_COLORS[lang] || '#94a3b8' }) }}
+                    onClick={() => { setFilterLang(filterLang === lang ? '' : lang); setPage(1); }}>
+                    {LANG_LABELS[lang] || lang} <span style={s.chipCount}>{count}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={s.advGroup}>
+              <div style={s.advLabel}>סוג תבנית</div>
+              <select style={s.advSelect} value={filterPattern} onChange={e => { setFilterPattern(e.target.value); setPage(1); }}>
+                <option value="">הכל</option>
+                {Object.keys(stats?.patterns || {}).sort().map(p => (
+                  <option key={p} value={p}>{p} ({stats.patterns[p]})</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={s.advGroup}>
+              <div style={s.advLabel}>סטטוס צוות</div>
+              <select style={s.advSelect} value={filterTeam} onChange={e => { setFilterTeam(e.target.value); setPage(1); }}>
+                <option value="">הכל</option>
+                {TEAM_STATUSES.filter(t => t.value).map(t => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={s.advGroup}>
+              <div style={s.advLabel}>בעיות</div>
+              <div style={s.chipRow}>
+                {Object.entries(stats?.issues || {}).map(([iss, count]) => (
+                  <button key={iss}
+                    style={{ ...s.chip, ...(filterIssue === iss ? { borderColor: '#f87171', color: '#f87171', background: 'rgba(239,68,68,0.08)' } : { color: '#f87171' }) }}
+                    onClick={() => { setFilterIssue(filterIssue === iss ? '' : iss); setPage(1); }}>
+                    {ISSUE_LABELS[iss] || iss} <span style={s.chipCount}>{count}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Row 2: Context tags (multi-select) */}
+          {allTags.length > 0 && (
+            <div style={s.advGroup}>
+              <div style={s.advLabel}>תגיות הקשר <span style={{ fontWeight: 400, opacity: 0.6 }}>(אפשר לבחור כמה)</span></div>
+              <div style={{ ...s.chipRow, flexWrap: 'wrap', gap: 6, maxHeight: 140, overflowY: 'auto' }}>
+                {allTags.map(tag => (
+                  <button key={tag}
+                    style={{ ...s.chip, ...(filterTags.includes(tag) ? { borderColor: '#a78bfa', color: '#a78bfa', background: 'rgba(124,58,237,0.12)' } : { color: '#94a3b8' }) }}
+                    onClick={() => toggleTag(tag)}>
+                    {tag}
+                    {stats?.contextTags?.[tag] ? <span style={s.chipCount}>{stats.contextTags[tag]}</span> : null}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Row 3: Favorites + Recently edited */}
+          <div style={s.advRow}>
+            <div style={s.advGroup}>
+              <div style={s.advLabel}>מועדפים</div>
+              <button
+                style={{ ...s.chip, ...(showFavOnly ? { borderColor: '#fbbf24', color: '#fbbf24', background: 'rgba(251,191,36,0.08)' } : { color: '#94a3b8' }) }}
+                onClick={() => { setShowFavOnly(f => !f); setPage(1); }}>
+                ⭐ הצג מועדפים בלבד {favorites.length > 0 ? `(${favorites.length})` : ''}
+              </button>
+            </div>
+
+            {recent.length > 0 && (
+              <div style={{ ...s.advGroup, flex: 2 }}>
+                <div style={s.advLabel}>🕐 נערכו לאחרונה</div>
+                <div style={{ ...s.chipRow, flexWrap: 'wrap', gap: 6 }}>
+                  {recent.map(r => (
+                    <button key={r.id} style={{ ...s.chip, color: '#7dd3fc', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                      title={r.title}
+                      onClick={() => handleEdit(r.id, r.title)}>
+                      {r.title || r.id.slice(0, 8)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Bulk actions (admin only, when filters active) */}
+          {canBulk && (filterLang || filterPattern || contextTag || filterTeam || filterIssue) && (
+            <div style={{ ...s.advRow, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 12, marginTop: 4 }}>
+              <div style={s.advLabel}>פעולות מרוכזות לתוצאות הנוכחיות:</div>
+              <button style={{ ...s.clearBtn, color: '#34d399', borderColor: 'rgba(52,211,153,0.3)' }}
+                onClick={() => bulkEnable('showHeadImage', '📷 תמונת כותרת')}>
+                📷 הפעל תמונות לכולם
+              </button>
+              <button style={{ ...s.clearBtn, color: '#60a5fa', borderColor: 'rgba(96,165,250,0.3)' }}
+                onClick={() => bulkEnable('showGameTitle', '📝 כותרת גיים')}>
+                📝 הפעל כותרת לכולם
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Active filter badges */}
+      {hasFilters && (
+        <div style={s.activeFilters}>
+          {filterLang && <span style={{ ...s.badge, color: LANG_COLORS[filterLang] }}>שפה: {LANG_LABELS[filterLang] || filterLang}</span>}
+          {filterPattern && <span style={s.badge}>תבנית: {filterPattern}</span>}
+          {filterTeam && <span style={s.badge}>צוות: {TEAM_STATUSES.find(t=>t.value===filterTeam)?.label}</span>}
+          {filterIssue && <span style={{ ...s.badge, color: '#f87171' }}>{ISSUE_LABELS[filterIssue] || filterIssue}</span>}
+          {filterTags.map(t => <span key={t} style={{ ...s.badge, color: '#a78bfa' }}>#{t}</span>)}
+          {showFavOnly && <span style={{ ...s.badge, color: '#fbbf24' }}>⭐ מועדפים</span>}
+          {search && <span style={s.badge}>חיפוש: "{search}"</span>}
+        </div>
+      )}
 
       {/* Create modal */}
       {showCreate && (
@@ -322,10 +466,11 @@ export default function GamesPage({ onEdit }) {
         <div style={s.tableWrap}>
           <table style={s.table}>
             <colgroup>
+              <col style={{ width: 36 }} />   {/* star */}
               <col style={{ width: 64 }} />   {/* תמונה */}
               <col style={{ width: '25%' }} /> {/* כותרת */}
               <col style={{ width: 80 }} />    {/* שפה */}
-              <col style={{ width: '18%' }} /> {/* סוג + תגיות */}
+              <col style={{ width: '16%' }} /> {/* סוג + תגיות */}
               <col style={{ width: 70 }} />    {/* סטטוס */}
               <col style={{ width: 100 }} />   {/* בעיות */}
               <col style={{ width: 100 }} />   {/* צוות */}
@@ -334,6 +479,7 @@ export default function GamesPage({ onEdit }) {
             </colgroup>
             <thead>
               <tr style={s.thead}>
+                <th style={s.th}>⭐</th>
                 <th style={s.th}>תמונה</th>
                 <th style={s.th}>כותרת</th>
                 <th style={s.th}>שפה</th>
@@ -346,76 +492,91 @@ export default function GamesPage({ onEdit }) {
               </tr>
             </thead>
             <tbody>
-              {games.map(g => (
-                <tr key={g.folderId} style={{ ...s.tr, ...(g.issues?.length ? { background: 'rgba(239,68,68,0.03)' } : {}) }}>
-                  <td style={s.td}>
-                    {g.thumbnail
-                      ? <img src={`/game-files/${g.folderId}/${g.thumbnail.replace(/^files\//, '')}`} style={s.thumb} alt="" onError={e => e.target.style.display='none'} />
-                      : <div style={s.thumbPlaceholder}>🎮</div>
-                    }
-                  </td>
-                  <td style={{ ...s.td, overflow: 'hidden' }}>
-                    <div style={s.gameTitle} title={g.title}>{g.title || <span style={{ color: '#475569' }}>ללא שם</span>}</div>
-                    <div style={s.gameId}>{g.folderId?.slice(0, 8)}...</div>
-                  </td>
-                  <td style={s.td}>
-                    <span style={{ ...s.tag, color: LANG_COLORS[g.detectedLang] || '#94a3b8', background: 'rgba(255,255,255,0.04)' }} title={g.langOverride ? 'שפה תוקנה ידנית' : 'זיהוי אוטומטי'}>
-                      {LANG_LABELS[g.detectedLang] || '?'}{g.langOverride ? ' ✎' : ''}
-                    </span>
-                  </td>
-                  <td style={{ ...s.td, overflow: 'hidden' }}>
-                    <span style={s.tag}>{g.patternId}</span>
-                    {(g.contextTags || []).filter(t => t && !t.includes('<')).map(t => (
-                      <span key={t} style={{ ...s.tag, background: 'rgba(124,58,237,0.15)', color: '#a78bfa', display: 'block', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={t}>{t}</span>
-                    ))}
-                  </td>
-                  <td style={s.td}>
-                    <span style={{ ...s.tag, background: g.status === 'published' ? 'rgba(34,197,94,0.15)' : 'rgba(234,179,8,0.15)', color: g.status === 'published' ? '#86efac' : '#fde047' }}>
-                      {g.status === 'published' ? 'פורסם' : 'טיוטה'}
-                    </span>
-                  </td>
-                  <td style={s.td}>
-                    {(g.issues || []).map(iss => (
-                      <span key={iss} style={{ ...s.tag, background: 'rgba(239,68,68,0.12)', color: '#fca5a5', display: 'block', marginBottom: 2, fontSize: 11 }}>
-                        {ISSUE_LABELS[iss] || iss}
-                      </span>
-                    ))}
-                  </td>
-                  <td style={{ ...s.td, overflow: 'hidden' }}>
-                    {g.teamStatus && (
-                      <span style={{ ...s.tag, color: TEAM_STATUSES.find(t => t.value === g.teamStatus)?.color || '#94a3b8' }}>
-                        {TEAM_STATUSES.find(t => t.value === g.teamStatus)?.label || g.teamStatus}
-                      </span>
-                    )}
-                    {g.assignedTo && <div style={{ fontSize: 11, color: '#64748b', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.assignedTo}</div>}
-                  </td>
-                  <td style={s.td}>
-                    <span style={{ fontSize: 12, color: '#64748b' }}>{g.lastEdit ? new Date(g.lastEdit).toLocaleDateString('he') : ''}</span>
-                  </td>
-                  <td style={s.td}>
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      <button style={s.actionBtn} onClick={() => onEdit(g.folderId)} title="ערוך">✏️</button>
-                      <button style={s.actionBtn} onClick={() => window.open(`/game/${g.folderId}`, '_blank')} title="תצוגה מקדימה">👁</button>
-                      <button style={{ ...s.actionBtn, color: g.showHeadImage ? '#34d399' : '#475569' }}
-                        onClick={() => toggleMeta(g, 'showHeadImage')}
-                        title={g.showHeadImage ? 'תמונת כותרת פעילה — לחץ לכיבוי' : 'תמונת כותרת כבויה — לחץ להפעלה'}>
-                        🖼
+              {visibleGames.map(g => {
+                const isFav = favorites.includes(g.folderId);
+                return (
+                  <tr key={g.folderId} style={{ ...s.tr, ...(g.issues?.length ? { background: 'rgba(239,68,68,0.03)' } : {}) }}>
+                    <td style={{ ...s.td, padding: '10px 4px', textAlign: 'center' }}>
+                      <button style={{ ...s.starBtn, color: isFav ? '#fbbf24' : '#334155' }}
+                        onClick={() => toggleFavorite(g.folderId)}
+                        title={isFav ? 'הסר ממועדפים' : 'הוסף למועדפים'}>
+                        {isFav ? '⭐' : '☆'}
                       </button>
-                      <button style={{ ...s.actionBtn, color: g.showGameTitle ? '#60a5fa' : '#475569' }}
-                        onClick={() => toggleMeta(g, 'showGameTitle')}
-                        title={g.showGameTitle ? 'כותרת גיים פעילה — לחץ לכיבוי' : 'כותרת גיים כבויה — לחץ להפעלה'}>
-                        📝
-                      </button>
-                      <button style={s.actionBtn} onClick={() => openMeta(g)} title="תייג">🏷</button>
-                      <button style={s.actionBtn} onClick={() => handleDuplicate(g.folderId)} title="שכפל">⧉</button>
-                      {canDelete && <button style={{ ...s.actionBtn, color: '#f87171' }} onClick={() => handleDelete(g.folderId, g.title)} title="מחק">🗑</button>}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td style={s.td}>
+                      {g.thumbnail
+                        ? <img src={`/game-files/${g.folderId}/${g.thumbnail.replace(/^files\//, '')}`} style={s.thumb} alt="" onError={e => e.target.style.display='none'} />
+                        : <div style={s.thumbPlaceholder}>🎮</div>
+                      }
+                    </td>
+                    <td style={{ ...s.td, overflow: 'hidden' }}>
+                      <div style={s.gameTitle} title={g.title}>{g.title || <span style={{ color: '#475569' }}>ללא שם</span>}</div>
+                      <div style={s.gameId}>{g.folderId?.slice(0, 8)}...</div>
+                    </td>
+                    <td style={s.td}>
+                      <span style={{ ...s.tag, color: LANG_COLORS[g.detectedLang] || '#94a3b8', background: 'rgba(255,255,255,0.04)' }} title={g.langOverride ? 'שפה תוקנה ידנית' : 'זיהוי אוטומטי'}>
+                        {LANG_LABELS[g.detectedLang] || '?'}{g.langOverride ? ' ✎' : ''}
+                      </span>
+                    </td>
+                    <td style={{ ...s.td, overflow: 'hidden' }}>
+                      <span style={s.tag}>{g.patternId}</span>
+                      {(g.contextTags || []).filter(t => t && !t.includes('<')).map(t => (
+                        <button key={t}
+                          style={{ ...s.tag, background: filterTags.includes(t) ? 'rgba(124,58,237,0.25)' : 'rgba(124,58,237,0.15)', color: '#a78bfa', display: 'block', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer', border: 'none', textAlign: 'right', width: '100%' }}
+                          title={`סנן לפי ${t}`}
+                          onClick={() => { toggleTag(t); setAdvOpen(true); }}>
+                          #{t}
+                        </button>
+                      ))}
+                    </td>
+                    <td style={s.td}>
+                      <span style={{ ...s.tag, background: g.status === 'published' ? 'rgba(34,197,94,0.15)' : 'rgba(234,179,8,0.15)', color: g.status === 'published' ? '#86efac' : '#fde047' }}>
+                        {g.status === 'published' ? 'פורסם' : 'טיוטה'}
+                      </span>
+                    </td>
+                    <td style={s.td}>
+                      {(g.issues || []).map(iss => (
+                        <span key={iss} style={{ ...s.tag, background: 'rgba(239,68,68,0.12)', color: '#fca5a5', display: 'block', marginBottom: 2, fontSize: 11 }}>
+                          {ISSUE_LABELS[iss] || iss}
+                        </span>
+                      ))}
+                    </td>
+                    <td style={{ ...s.td, overflow: 'hidden' }}>
+                      {g.teamStatus && (
+                        <span style={{ ...s.tag, color: TEAM_STATUSES.find(t => t.value === g.teamStatus)?.color || '#94a3b8' }}>
+                          {TEAM_STATUSES.find(t => t.value === g.teamStatus)?.label || g.teamStatus}
+                        </span>
+                      )}
+                      {g.assignedTo && <div style={{ fontSize: 11, color: '#64748b', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.assignedTo}</div>}
+                    </td>
+                    <td style={s.td}>
+                      <span style={{ fontSize: 12, color: '#64748b' }}>{g.lastEdit ? new Date(g.lastEdit).toLocaleDateString('he') : ''}</span>
+                    </td>
+                    <td style={s.td}>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <button style={s.actionBtn} onClick={() => handleEdit(g.folderId, g.title)} title="ערוך">✏️</button>
+                        <button style={s.actionBtn} onClick={() => window.open(`/game/${g.folderId}`, '_blank')} title="תצוגה מקדימה">👁</button>
+                        <button style={{ ...s.actionBtn, color: g.showHeadImage ? '#34d399' : '#475569' }}
+                          onClick={() => toggleMeta(g, 'showHeadImage')}
+                          title={g.showHeadImage ? 'תמונת כותרת פעילה — לחץ לכיבוי' : 'תמונת כותרת כבויה — לחץ להפעלה'}>
+                          🖼
+                        </button>
+                        <button style={{ ...s.actionBtn, color: g.showGameTitle ? '#60a5fa' : '#475569' }}
+                          onClick={() => toggleMeta(g, 'showGameTitle')}
+                          title={g.showGameTitle ? 'כותרת גיים פעילה — לחץ לכיבוי' : 'כותרת גיים כבויה — לחץ להפעלה'}>
+                          📝
+                        </button>
+                        <button style={s.actionBtn} onClick={() => openMeta(g)} title="תייג">🏷</button>
+                        <button style={s.actionBtn} onClick={() => handleDuplicate(g.folderId)} title="שכפל">⧉</button>
+                        {canDelete && <button style={{ ...s.actionBtn, color: '#f87171' }} onClick={() => handleDelete(g.folderId, g.title)} title="מחק">🗑</button>}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
-          {games.length === 0 && !loading && (
+          {visibleGames.length === 0 && !loading && (
             <div style={{ textAlign: 'center', color: '#475569', padding: 40 }}>לא נמצאו גיימים</div>
           )}
         </div>
@@ -452,14 +613,29 @@ const s = {
   createBtn: { background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', cursor: 'pointer', fontWeight: 600, fontSize: 14, flexShrink: 0 },
   rebuildBtn: { background: '#1e2235', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#94a3b8', padding: '10px 16px', cursor: 'pointer', fontSize: 13 },
   warning: { background: 'rgba(234,179,8,0.1)', border: '1px solid rgba(234,179,8,0.2)', borderRadius: 8, padding: '10px 14px', color: '#fde047', fontSize: 13, marginBottom: 12 },
-  statsBar: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 },
-  statChip: { background: '#1e2235', border: '2px solid transparent', borderRadius: 20, padding: '5px 12px', cursor: 'pointer', fontSize: 13, fontWeight: 600, display: 'flex', gap: 6, alignItems: 'center' },
-  chipCount: { background: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: '1px 6px', fontSize: 11, color: '#94a3b8' },
-  statDivider: { width: 1, background: 'rgba(255,255,255,0.08)', margin: '0 4px' },
-  filterRow: { display: 'flex', gap: 8, marginBottom: 20, alignItems: 'center' },
-  search: { background: '#1e2235', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '10px 16px', color: '#e2e8f0', fontSize: 15, direction: 'rtl', outline: 'none' },
-  select: { background: '#1e2235', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '10px 12px', color: '#e2e8f0', fontSize: 14, outline: 'none', cursor: 'pointer' },
-  clearBtn: { background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#94a3b8', padding: '8px 12px', cursor: 'pointer', fontSize: 13, whiteSpace: 'nowrap' },
+
+  // Search bar
+  searchBar: { display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 },
+  searchInput: { flex: 1, background: '#1e2235', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '10px 16px', color: '#e2e8f0', fontSize: 15, direction: 'rtl', outline: 'none' },
+  advBtn: { background: '#1e2235', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#94a3b8', padding: '10px 16px', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', gap: 6, position: 'relative', whiteSpace: 'nowrap', flexShrink: 0 },
+  advBtnOpen: { borderColor: '#7c3aed', color: '#a78bfa', background: 'rgba(124,58,237,0.1)' },
+  filterDot: { width: 7, height: 7, borderRadius: '50%', background: '#7c3aed', position: 'absolute', top: 7, left: 7 },
+  clearBtn: { background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#94a3b8', padding: '8px 12px', cursor: 'pointer', fontSize: 13, whiteSpace: 'nowrap', flexShrink: 0 },
+
+  // Advanced panel
+  advPanel: { background: '#1a1d2e', border: '1px solid rgba(124,58,237,0.25)', borderRadius: 12, padding: '16px 20px', marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 14 },
+  advRow: { display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'flex-start' },
+  advGroup: { display: 'flex', flexDirection: 'column', gap: 8, flex: 1, minWidth: 160 },
+  advLabel: { fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  advSelect: { background: '#0f1117', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '8px 10px', color: '#e2e8f0', fontSize: 14, outline: 'none', cursor: 'pointer' },
+  chipRow: { display: 'flex', gap: 6, flexWrap: 'wrap' },
+  chip: { background: '#0f1117', border: '1.5px solid rgba(255,255,255,0.08)', borderRadius: 20, padding: '5px 11px', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', gap: 5, color: '#94a3b8' },
+  chipCount: { background: 'rgba(255,255,255,0.07)', borderRadius: 10, padding: '1px 5px', fontSize: 11, color: '#64748b' },
+
+  // Active filter badges
+  activeFilters: { display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 },
+  badge: { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14, padding: '3px 10px', fontSize: 12, color: '#94a3b8' },
+
   modal: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 },
   modalCard: { background: '#1a1d2e', borderRadius: 16, padding: 32, width: 420, border: '1px solid rgba(255,255,255,0.08)', maxHeight: '90vh', overflowY: 'auto' },
   modalTitle: { color: '#f1f5f9', fontSize: 20, fontWeight: 700, margin: '0 0 24px', direction: 'rtl' },
@@ -479,6 +655,7 @@ const s = {
   gameTitle: { fontWeight: 500, color: '#e2e8f0', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   gameId: { fontSize: 11, color: '#475569' },
   tag: { fontSize: 11, background: '#334155', padding: '3px 8px', borderRadius: 20, color: '#94a3b8', whiteSpace: 'nowrap' },
+  starBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, padding: 2, lineHeight: 1 },
   actionBtn: { background: '#1e2235', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, cursor: 'pointer', padding: '5px 8px', fontSize: 14 },
   pagination: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 24 },
   pageBtn: { background: '#1e2235', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, color: '#94a3b8', padding: '8px 14px', cursor: 'pointer', fontSize: 14 },
