@@ -22,6 +22,13 @@ function safeText(val) {
   return String(val);
 }
 
+function textDir(str = '') {
+  const rtl = (str.match(/[֐-߿יִ-﷽ﹰ-ﻼ]/g) || []).length;
+  const ltr = (str.match(/[A-Za-zÀ-ɏɐ-ʯ]/g) || []).length;
+  if (rtl === 0 && ltr === 0) return 'rtl';
+  return rtl > ltr ? 'rtl' : 'ltr';
+}
+
 // ─── Shared ImagePicker ───────────────────────────────────────────────────────
 function ImagePicker({ gameId, value, onChange, authFetch: af }) {
   const apiFetch = af || fetch;
@@ -301,13 +308,17 @@ export function FlipCardBlock({ block, isEditing, onChange, gameId, authFetch })
 
   if (!isEditing) return (
     <div style={{ display: 'flex', gap: 12, width: `${cardWidth}%` }}>
-      {FLIP_SIDES.map(s => (
-        <div key={s.t} style={{ flex: 1, background: '#1a2235', borderRadius: 8, padding: 16, minHeight: cardHeight, color: '#e2e8f0', fontSize: 14, textAlign: 'center' }}>
-          <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>{s.name}</div>
-          {block[s.img] && <img src={block[s.img]} alt="" style={{ maxWidth: '100%', maxHeight: cardHeight * 0.5, borderRadius: 4, marginBottom: 6, objectFit: 'cover' }} />}
-          <div>{safeText(block[s.t])}</div>
-        </div>
-      ))}
+      {FLIP_SIDES.map(s => {
+        const txt = safeText(block[s.t]);
+        const dir = textDir(txt);
+        return (
+          <div key={s.t} style={{ flex: 1, background: '#1a2235', borderRadius: 8, padding: 16, minHeight: cardHeight, color: '#e2e8f0', fontSize: 14, textAlign: dir === 'rtl' ? 'center' : 'left' }}>
+            <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>{s.name}</div>
+            {block[s.img] && <img src={block[s.img]} alt="" style={{ maxWidth: '100%', maxHeight: cardHeight * 0.5, borderRadius: 4, marginBottom: 6, objectFit: 'cover' }} />}
+            <div style={{ direction: dir, unicodeBidi: 'embed' }}>{txt}</div>
+          </div>
+        );
+      })}
     </div>
   );
   return (
@@ -335,7 +346,7 @@ export function FlipCardBlock({ block, isEditing, onChange, gameId, authFetch })
           <div key={s.t} style={{ flex: 1, background: '#1a2235', borderRadius: 8, padding: 12 }}>
             <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6, fontWeight: 'bold' }}>{s.name}</div>
             <textarea rows={4}
-              style={{ width: '100%', background: '#0f1117', color: '#e2e8f0', border: '1px solid #334155', borderRadius: 6, padding: 8, fontSize: 14, resize: 'vertical', boxSizing: 'border-box', direction: 'rtl' }}
+              style={{ width: '100%', background: '#0f1117', color: '#e2e8f0', border: '1px solid #334155', borderRadius: 6, padding: 8, fontSize: 14, resize: 'vertical', boxSizing: 'border-box', direction: textDir(safeText(block[s.t])) }}
               value={safeText(block[s.t])}
               onChange={e => { const ch = {}; ch[s.t] = e.target.value; onChange(ch); }}
             />

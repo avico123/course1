@@ -9,7 +9,11 @@ function extractText(val) {
 }
 
 function isRTL(str = '') {
-  return /[֐-׿؀-ۿ]/.test(str);
+  // Count strong RTL (Hebrew/Arabic) vs strong LTR characters and decide by majority
+  const rtlCount = (str.match(/[֐-߿יִ-﷽ﹰ-ﻼ]/g) || []).length;
+  const ltrCount = (str.match(/[A-Za-zÀ-ɏɐ-ʯ]/g) || []).length;
+  if (rtlCount === 0 && ltrCount === 0) return false;
+  return rtlCount > ltrCount;
 }
 
 function imgUrl(filePath, folderId) {
