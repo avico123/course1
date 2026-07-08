@@ -197,8 +197,8 @@ function sectionsToBlocks(sections = []) {
         const bm = sec.media?.backMedia  || {};
         return {
           type: 'flip-card', id,
-          frontText: extractDeltaText(fm.text) || '', frontImage: fm.backgroundMedia?.url || '', _rawFront: fm,
-          backText:  extractDeltaText(bm.text) || '', backImage:  bm.backgroundMedia?.url || '', _rawBack:  bm,
+          frontText: extractDeltaText(fm.text) || '', frontImage: fm.backgroundMedia?.url || '', frontDir: fm.textDir || 'rtl', _rawFront: fm,
+          backText:  extractDeltaText(bm.text) || '', backImage:  bm.backgroundMedia?.url || '', backDir:  bm.textDir  || 'rtl', _rawBack:  bm,
           cardHeight: sec.cardHeight || 400,
           cardWidth:  sec.cardWidth  || 100,
         };
@@ -249,9 +249,9 @@ function blockToSection(block) {
     case 'separator':
       return { type: 'paragraphSection', title: deltaText(''), text: deltaText('') };
     case 'flip-card': {
-      const fm = { ...(block._rawFront || {}), text: block.frontText || '' };
+      const fm = { ...(block._rawFront || {}), text: block.frontText || '', textDir: block.frontDir || 'rtl' };
       if (block.frontImage) fm.backgroundMedia = { ...(fm.backgroundMedia || {}), url: block.frontImage };
-      const bm = { ...(block._rawBack  || {}), text: block.backText  || '' };
+      const bm = { ...(block._rawBack  || {}), text: block.backText  || '', textDir: block.backDir  || 'rtl' };
       if (block.backImage)  bm.backgroundMedia = { ...(bm.backgroundMedia  || {}), url: block.backImage };
       return { type: 'flipCardSection', title: deltaText(''), cardHeight: block.cardHeight || 400, cardWidth: block.cardWidth || 100, media: { mediaType: 'flip-card', ratio: 'landscape', frontMedia: fm, backMedia: bm } };
     }

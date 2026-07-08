@@ -1,19 +1,10 @@
 import { useState } from 'react';
-import { renderDelta } from '../deltaRenderer.jsx';
 
 function extractText(val) {
   if (!val) return '';
   if (typeof val === 'string') return val;
   if (val?.ops) return val.ops.map(o => (typeof o.insert === 'string' ? o.insert : '')).join('');
   return String(val);
-}
-
-function isRTL(str = '') {
-  // Count strong RTL (Hebrew/Arabic) vs strong LTR characters and decide by majority
-  const rtlCount = (str.match(/[֐-߿יִ-﷽ﹰ-ﻼ]/g) || []).length;
-  const ltrCount = (str.match(/[A-Za-zÀ-ɏɐ-ʯ]/g) || []).length;
-  if (rtlCount === 0 && ltrCount === 0) return false;
-  return rtlCount > ltrCount;
 }
 
 function imgUrl(filePath, folderId) {
@@ -30,17 +21,19 @@ export default function FlipCardSection({ section, folderId }) {
   const back  = media.backMedia  || {};
 
   const cardHeight = section.cardHeight || 400;
-  const cardWidth  = section.cardWidth  || 100; // percent
+  const cardWidth  = section.cardWidth  || 100;
 
   const frontImg = front.backgroundMedia?.url || imgUrl(front.backgroundMedia?.originalImageUrl, folderId);
   const backImg  = back.backgroundMedia?.url  || imgUrl(back.backgroundMedia?.originalImageUrl, folderId);
 
   const frontText = extractText(front.text);
   const backText  = extractText(back.text);
-  const frontRTL  = isRTL(frontText);
-  const backRTL   = isRTL(backText);
 
-  const faceStyle = (bg, img, rtl) => ({
+  // textDir stored explicitly by the editor ('rtl'/'ltr'), fallback to 'rtl'
+  const frontDir = front.textDir || 'rtl';
+  const backDir  = back.textDir  || 'rtl';
+
+  const faceStyle = (bg, img, dir) => ({
     position: 'absolute', inset: 0,
     backfaceVisibility: 'hidden',
     WebkitBackfaceVisibility: 'hidden',
@@ -48,15 +41,15 @@ export default function FlipCardSection({ section, folderId }) {
     overflow: 'hidden',
     background: img ? `url(${img}) center/cover no-repeat` : bg,
     display: 'flex', flexDirection: 'column',
-    alignItems: rtl ? 'center' : 'flex-start',
+    alignItems: 'center',
     justifyContent: img ? 'flex-end' : 'center',
     boxSizing: 'border-box',
   });
 
-  const textStyle = (hasImg, rtl) => ({
+  const textStyle = (hasImg, dir) => ({
     fontSize: 18, color: '#e2e8f0',
-    textAlign: rtl ? 'center' : 'left',
-    direction: rtl ? 'rtl' : 'ltr',
+    textAlign: dir === 'ltr' ? 'left' : 'center',
+    direction: dir,
     unicodeBidi: 'embed',
     whiteSpace: 'pre-wrap',
     padding: '12px 24px',
@@ -81,14 +74,14 @@ export default function FlipCardSection({ section, folderId }) {
         transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
       }}>
         {/* Front */}
-        <div style={faceStyle('#1a2235', frontImg, frontRTL)}>
-          <div style={textStyle(!!frontImg, frontRTL)}>{frontText}</div>
+        <div style={faceStyle('#1a2235', frontImg, frontDir)}>
+          <div style={textStyle(!!frontImg, frontDir)}>{frontText}</div>
           <div style={{ position: 'absolute', bottom: 10, right: 14, fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>לחץ להפיכה ↩</div>
         </div>
 
         {/* Back */}
-        <div style={{ ...faceStyle('#0f2035', backImg, backRTL), transform: 'rotateY(180deg)' }}>
-          <div style={textStyle(!!backImg, backRTL)}>{backText}</div>
+        <div style={{ ...faceStyle('#0f2035', backImg, backDir), transform: 'rotateY(180deg)' }}>
+          <div style={textStyle(!!backImg, backDir)}>{backText}</div>
           <div style={{ position: 'absolute', bottom: 10, right: 14, fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>לחץ להפיכה ↩</div>
         </div>
       </div>

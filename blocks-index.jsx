@@ -298,8 +298,8 @@ export function SeparatorBlock({ block, isEditing, onChange }) {
 
 // ─── FLIP CARD ────────────────────────────────────────────────────────────────
 const FLIP_SIDES = [
-  { t: 'frontText', img: 'frontImage', name: 'חזית' },
-  { t: 'backText',  img: 'backImage',  name: 'גב'   },
+  { t: 'frontText', img: 'frontImage', dir: 'frontDir', name: 'חזית' },
+  { t: 'backText',  img: 'backImage',  dir: 'backDir',  name: 'גב'   },
 ];
 
 export function FlipCardBlock({ block, isEditing, onChange, gameId, authFetch }) {
@@ -310,12 +310,12 @@ export function FlipCardBlock({ block, isEditing, onChange, gameId, authFetch })
     <div style={{ display: 'flex', gap: 12, width: `${cardWidth}%` }}>
       {FLIP_SIDES.map(s => {
         const txt = safeText(block[s.t]);
-        const dir = textDir(txt);
+        const dir = block[s.dir] || 'rtl';
         return (
-          <div key={s.t} style={{ flex: 1, background: '#1a2235', borderRadius: 8, padding: 16, minHeight: cardHeight, color: '#e2e8f0', fontSize: 14, textAlign: dir === 'rtl' ? 'center' : 'left' }}>
+          <div key={s.t} style={{ flex: 1, background: '#1a2235', borderRadius: 8, padding: 16, minHeight: cardHeight, color: '#e2e8f0', fontSize: 14 }}>
             <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>{s.name}</div>
             {block[s.img] && <img src={block[s.img]} alt="" style={{ maxWidth: '100%', maxHeight: cardHeight * 0.5, borderRadius: 4, marginBottom: 6, objectFit: 'cover' }} />}
-            <div style={{ direction: dir, unicodeBidi: 'embed' }}>{txt}</div>
+            <div style={{ direction: dir, unicodeBidi: 'embed', textAlign: dir === 'ltr' ? 'left' : 'center' }}>{txt}</div>
           </div>
         );
       })}
@@ -342,18 +342,35 @@ export function FlipCardBlock({ block, isEditing, onChange, gameId, authFetch })
       </div>
       {/* Front / Back editors */}
       <div style={{ display: 'flex', gap: 12 }}>
-        {FLIP_SIDES.map(s => (
-          <div key={s.t} style={{ flex: 1, background: '#1a2235', borderRadius: 8, padding: 12 }}>
-            <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6, fontWeight: 'bold' }}>{s.name}</div>
-            <textarea rows={4}
-              style={{ width: '100%', background: '#0f1117', color: '#e2e8f0', border: '1px solid #334155', borderRadius: 6, padding: 8, fontSize: 14, resize: 'vertical', boxSizing: 'border-box', direction: textDir(safeText(block[s.t])) }}
-              value={safeText(block[s.t])}
-              onChange={e => { const ch = {}; ch[s.t] = e.target.value; onChange(ch); }}
-            />
-            <div style={{ fontSize: 11, color: '#64748b', marginTop: 10, marginBottom: 4 }}>תמונה</div>
-            <ImagePicker gameId={gameId} authFetch={authFetch} value={block[s.img] || ''} onChange={v => { const ch = {}; ch[s.img] = v; onChange(ch); }} />
-          </div>
-        ))}
+        {FLIP_SIDES.map(s => {
+          const dir = block[s.dir] || 'rtl';
+          return (
+            <div key={s.t} style={{ flex: 1, background: '#1a2235', borderRadius: 8, padding: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ fontSize: 11, color: '#64748b', fontWeight: 'bold' }}>{s.name}</span>
+                <div style={{ display: 'flex', gap: 3 }}>
+                  <button type="button"
+                    style={{ fontSize: 11, padding: '2px 8px', borderRadius: 5, border: '1px solid', cursor: 'pointer', background: dir === 'rtl' ? '#4f46e5' : '#1e2235', color: dir === 'rtl' ? '#fff' : '#64748b', borderColor: dir === 'rtl' ? '#7c3aed' : '#334155' }}
+                    onClick={() => { const ch = {}; ch[s.dir] = 'rtl'; onChange(ch); }}>
+                    RTL ←
+                  </button>
+                  <button type="button"
+                    style={{ fontSize: 11, padding: '2px 8px', borderRadius: 5, border: '1px solid', cursor: 'pointer', background: dir === 'ltr' ? '#4f46e5' : '#1e2235', color: dir === 'ltr' ? '#fff' : '#64748b', borderColor: dir === 'ltr' ? '#7c3aed' : '#334155' }}
+                    onClick={() => { const ch = {}; ch[s.dir] = 'ltr'; onChange(ch); }}>
+                    → LTR
+                  </button>
+                </div>
+              </div>
+              <textarea rows={4}
+                style={{ width: '100%', background: '#0f1117', color: '#e2e8f0', border: '1px solid #334155', borderRadius: 6, padding: 8, fontSize: 14, resize: 'vertical', boxSizing: 'border-box', direction: dir }}
+                value={safeText(block[s.t])}
+                onChange={e => { const ch = {}; ch[s.t] = e.target.value; onChange(ch); }}
+              />
+              <div style={{ fontSize: 11, color: '#64748b', marginTop: 10, marginBottom: 4 }}>תמונה</div>
+              <ImagePicker gameId={gameId} authFetch={authFetch} value={block[s.img] || ''} onChange={v => { const ch = {}; ch[s.img] = v; onChange(ch); }} />
+            </div>
+          );
+        })}
       </div>
     </div>
   );
