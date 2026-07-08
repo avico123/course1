@@ -20,9 +20,12 @@ const styles = {
   sectionTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 10 },
 }
 
-// Detect if a string is primarily RTL (Hebrew/Arabic)
+// Detect direction by character majority (Hebrew/Arabic vs Latin)
 function textDir(str = '') {
-  return /[֐-׿؀-ۿ]/.test(str) ? 'rtl' : 'ltr';
+  const rtl = (str.match(/[֐-׿؀-ۿ]/g) || []).length;
+  const ltr = (str.match(/[A-Za-zÀ-ɏ]/g) || []).length;
+  if (rtl === 0 && ltr === 0) return 'rtl';
+  return rtl >= ltr ? 'rtl' : 'ltr';
 }
 
 function imgUrl(filePath, folderId) {
@@ -31,18 +34,20 @@ function imgUrl(filePath, folderId) {
   return `/game-files/${folderId}/${filename}`
 }
 
-function ParagraphSection({ section }) {
+function ParagraphSection({ section, showSectionTitles }) {
   const titleText = section.title?.ops?.map(o => o.insert).join('').trim()
   const bodyText  = section.text?.ops?.map(o => o.insert).join('') || ''
+  // Only show the section title when body is empty (it's a real heading) or showSectionTitles is on
+  const displayTitle = titleText && (showSectionTitles || !bodyText.trim())
   return (
     <div style={styles.section}>
-      {titleText && <div style={{ ...styles.sectionTitle, direction: textDir(titleText), textAlign: textDir(titleText) === 'rtl' ? 'right' : 'left' }}>{titleText}</div>}
+      {displayTitle && <div style={{ ...styles.sectionTitle, direction: textDir(titleText), textAlign: textDir(titleText) === 'rtl' ? 'right' : 'left' }}>{titleText}</div>}
       <div style={{ ...styles.paragraph, direction: textDir(bodyText), textAlign: textDir(bodyText) === 'rtl' ? 'right' : 'left' }}>{typeof section.text === 'string' ? section.text : renderDelta(section.text)}</div>
     </div>
   )
 }
 
-function MediaSection({ section, folderId }) {
+function MediaSection({ section, folderId, showSectionTitles }) {
   const media = section.media || {}
   const mt = media.mediaType
   const titleText = section.title?.ops?.map(o => o.insert).join('').replace(/\n/g, '').trim()
@@ -98,7 +103,7 @@ function MediaSection({ section, folderId }) {
 
   return (
     <div style={styles.section}>
-      {titleText && <div style={{ ...styles.sectionTitle, direction: textDir(titleText), textAlign: textDir(titleText) === 'rtl' ? 'right' : 'left' }}>{titleText}</div>}
+      {showSectionTitles && titleText && <div style={{ ...styles.sectionTitle, direction: textDir(titleText), textAlign: textDir(titleText) === 'rtl' ? 'right' : 'left' }}>{titleText}</div>}
       {content}
       {caption && <div style={styles.caption}>{caption}</div>}
       {media.credits && <div style={styles.credits}>© {media.credits}</div>}
@@ -106,11 +111,11 @@ function MediaSection({ section, folderId }) {
   )
 }
 
-function renderSection(section, folderId) {
+function renderSection(section, folderId, showSectionTitles) {
   switch (section.type) {
-    case 'paragraphSection': return <ParagraphSection key={section.id} section={section} />
+    case 'paragraphSection': return <ParagraphSection key={section.id} section={section} showSectionTitles={showSectionTitles} />
     case 'imageSection':
-    case 'mediaSection':     return <MediaSection key={section.id} section={section} folderId={folderId} />
+    case 'mediaSection':     return <MediaSection key={section.id} section={section} folderId={folderId} showSectionTitles={showSectionTitles} />
     case 'triviaSection':    return <TriviaSection key={section.id} section={section} folderId={folderId} />
     case 'flipCardSection':  return <FlipCardSection key={section.id} section={section} folderId={folderId} />
     case 'convoSection':     return <ConvoSection key={section.id} section={section} folderId={folderId} />
@@ -130,6 +135,7 @@ export default function StoryPattern({ game }) {
   const folderId = game._folderId
   const cover = game.cover?.url
   const showHeadImage = game._meta?.showHeadImage === true
+  const showSectionTitles = game._meta?.showSectionTitles === true
 
   // showGameTitle: if explicitly set in meta, use it.
   // Otherwise auto-hide when title is Hebrew but game locale is LTR (Spanish/English).
@@ -158,8 +164,8 @@ export default function StoryPattern({ game }) {
         )}
         {game.sections?.map((slide, i) =>
           Array.isArray(slide)
-            ? slide.map(section => renderSection(section, folderId))
-            : renderSection(slide, folderId)
+            ? slide.map(section => renderSection(section, folderId, showSectionTitles))
+            : renderSection(slide, folderId, showSectionTitles)
         )}
       </div>
     </div>
