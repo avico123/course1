@@ -31,15 +31,27 @@ export default function FlipCardSection({ section, folderId }) {
   const frontText = extractText(front.text);
   const backText  = extractText(back.text);
 
-  const faceStyle = {
+  const faceStyle = (bg, img) => ({
     position: 'absolute', inset: 0,
     backfaceVisibility: 'hidden',
     WebkitBackfaceVisibility: 'hidden',
     borderRadius: 12,
     overflow: 'hidden',
-    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-    padding: 24, boxSizing: 'border-box',
-  };
+    background: img ? `url(${img}) center/cover no-repeat` : bg,
+    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: img ? 'flex-end' : 'center',
+    boxSizing: 'border-box',
+  });
+
+  const textStyle = (hasImg) => ({
+    fontSize: 18, color: '#e2e8f0',
+    textAlign: 'center', direction: 'rtl', unicodeBidi: 'embed', whiteSpace: 'pre-wrap',
+    padding: '12px 24px',
+    width: '100%',
+    ...(hasImg ? {
+      background: 'linear-gradient(transparent, rgba(0,0,0,0.75))',
+      paddingTop: 32,
+    } : {}),
+  });
 
   return (
     <div
@@ -55,17 +67,15 @@ export default function FlipCardSection({ section, folderId }) {
         transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
       }}>
         {/* Front */}
-        <div style={{ ...faceStyle, background: '#1a2235' }}>
-          {frontImg && <img src={frontImg} alt="" style={{ width: '100%', maxHeight: cardHeight * 0.5, objectFit: 'cover', borderRadius: 8, marginBottom: 12 }} />}
-          <div style={{ fontSize: 18, color: '#e2e8f0', textAlign: 'center', direction: 'rtl', unicodeBidi: 'embed', whiteSpace: 'pre-wrap' }}>{frontText}</div>
-          <div style={{ position: 'absolute', bottom: 10, right: 14, fontSize: 11, color: '#475569' }}>לחץ להפיכה ↩</div>
+        <div style={faceStyle('#1a2235', frontImg)}>
+          <div style={textStyle(!!frontImg)}>{frontText}</div>
+          <div style={{ position: 'absolute', bottom: 10, right: 14, fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>לחץ להפיכה ↩</div>
         </div>
 
         {/* Back */}
-        <div style={{ ...faceStyle, background: '#0f2035', transform: 'rotateY(180deg)' }}>
-          {backImg && <img src={backImg} alt="" style={{ width: '100%', maxHeight: cardHeight * 0.5, objectFit: 'cover', borderRadius: 8, marginBottom: 12 }} />}
-          <div style={{ fontSize: 18, color: '#e2e8f0', textAlign: 'center', direction: 'rtl', unicodeBidi: 'embed', whiteSpace: 'pre-wrap' }}>{backText}</div>
-          <div style={{ position: 'absolute', bottom: 10, right: 14, fontSize: 11, color: '#475569' }}>לחץ להפיכה ↩</div>
+        <div style={{ ...faceStyle('#0f2035', backImg), transform: 'rotateY(180deg)' }}>
+          <div style={textStyle(!!backImg)}>{backText}</div>
+          <div style={{ position: 'absolute', bottom: 10, right: 14, fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>לחץ להפיכה ↩</div>
         </div>
       </div>
     </div>
