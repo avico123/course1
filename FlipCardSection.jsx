@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { renderDelta } from '../deltaRenderer.jsx';
 
-// Extract plain text from a Quill delta or return the string as-is
 function extractText(val) {
   if (!val) return '';
   if (typeof val === 'string') return val;
   if (val?.ops) return val.ops.map(o => (typeof o.insert === 'string' ? o.insert : '')).join('');
   return String(val);
+}
+
+function isRTL(str = '') {
+  return /[֐-׿؀-ۿ]/.test(str);
 }
 
 function imgUrl(filePath, folderId) {
@@ -30,21 +33,28 @@ export default function FlipCardSection({ section, folderId }) {
 
   const frontText = extractText(front.text);
   const backText  = extractText(back.text);
+  const frontRTL  = isRTL(frontText);
+  const backRTL   = isRTL(backText);
 
-  const faceStyle = (bg, img) => ({
+  const faceStyle = (bg, img, rtl) => ({
     position: 'absolute', inset: 0,
     backfaceVisibility: 'hidden',
     WebkitBackfaceVisibility: 'hidden',
     borderRadius: 12,
     overflow: 'hidden',
     background: img ? `url(${img}) center/cover no-repeat` : bg,
-    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: img ? 'flex-end' : 'center',
+    display: 'flex', flexDirection: 'column',
+    alignItems: rtl ? 'center' : 'flex-start',
+    justifyContent: img ? 'flex-end' : 'center',
     boxSizing: 'border-box',
   });
 
-  const textStyle = (hasImg) => ({
+  const textStyle = (hasImg, rtl) => ({
     fontSize: 18, color: '#e2e8f0',
-    textAlign: 'center', direction: 'rtl', unicodeBidi: 'embed', whiteSpace: 'pre-wrap',
+    textAlign: rtl ? 'center' : 'left',
+    direction: rtl ? 'rtl' : 'ltr',
+    unicodeBidi: 'embed',
+    whiteSpace: 'pre-wrap',
     padding: '12px 24px',
     width: '100%',
     ...(hasImg ? {
@@ -67,14 +77,14 @@ export default function FlipCardSection({ section, folderId }) {
         transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
       }}>
         {/* Front */}
-        <div style={faceStyle('#1a2235', frontImg)}>
-          <div style={textStyle(!!frontImg)}>{frontText}</div>
+        <div style={faceStyle('#1a2235', frontImg, frontRTL)}>
+          <div style={textStyle(!!frontImg, frontRTL)}>{frontText}</div>
           <div style={{ position: 'absolute', bottom: 10, right: 14, fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>לחץ להפיכה ↩</div>
         </div>
 
         {/* Back */}
-        <div style={{ ...faceStyle('#0f2035', backImg), transform: 'rotateY(180deg)' }}>
-          <div style={textStyle(!!backImg)}>{backText}</div>
+        <div style={{ ...faceStyle('#0f2035', backImg, backRTL), transform: 'rotateY(180deg)' }}>
+          <div style={textStyle(!!backImg, backRTL)}>{backText}</div>
           <div style={{ position: 'absolute', bottom: 10, right: 14, fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>לחץ להפיכה ↩</div>
         </div>
       </div>
