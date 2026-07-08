@@ -346,26 +346,25 @@ export function FlipCardBlock({ block, isEditing, onChange, gameId, authFetch })
           const dir = block[s.dir] || 'rtl';
           return (
             <div key={s.t} style={{ flex: 1, background: '#1a2235', borderRadius: 8, padding: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <span style={{ fontSize: 11, color: '#64748b', fontWeight: 'bold' }}>{s.name}</span>
-                <div style={{ display: 'flex', gap: 3 }}>
-                  <button type="button"
-                    style={{ fontSize: 11, padding: '2px 8px', borderRadius: 5, border: '1px solid', cursor: 'pointer', background: dir === 'rtl' ? '#4f46e5' : '#1e2235', color: dir === 'rtl' ? '#fff' : '#64748b', borderColor: dir === 'rtl' ? '#7c3aed' : '#334155' }}
-                    onClick={() => { const ch = {}; ch[s.dir] = 'rtl'; onChange(ch); }}>
-                    RTL ←
-                  </button>
-                  <button type="button"
-                    style={{ fontSize: 11, padding: '2px 8px', borderRadius: 5, border: '1px solid', cursor: 'pointer', background: dir === 'ltr' ? '#4f46e5' : '#1e2235', color: dir === 'ltr' ? '#fff' : '#64748b', borderColor: dir === 'ltr' ? '#7c3aed' : '#334155' }}
-                    onClick={() => { const ch = {}; ch[s.dir] = 'ltr'; onChange(ch); }}>
-                    → LTR
-                  </button>
-                </div>
-              </div>
+                <div style={{ fontSize: 11, color: '#64748b', fontWeight: 'bold', marginBottom: 6 }}>{s.name}</div>
               <textarea rows={4}
                 style={{ width: '100%', background: '#0f1117', color: '#e2e8f0', border: '1px solid #334155', borderRadius: 6, padding: 8, fontSize: 14, resize: 'vertical', boxSizing: 'border-box', direction: dir }}
                 value={safeText(block[s.t])}
                 onChange={e => { const ch = {}; ch[s.t] = e.target.value; onChange(ch); }}
               />
+              <div style={{ display: 'flex', gap: 6, marginTop: 8, marginBottom: 4, alignItems: 'center' }}>
+                <span style={{ fontSize: 11, color: '#64748b', flexShrink: 0 }}>כיוון טקסט:</span>
+                <button type="button"
+                  style={{ flex: 1, padding: '5px 0', borderRadius: 6, border: '2px solid', cursor: 'pointer', fontWeight: 700, fontSize: 13, background: dir === 'rtl' ? '#4f46e5' : '#0f1117', color: dir === 'rtl' ? '#fff' : '#64748b', borderColor: dir === 'rtl' ? '#7c3aed' : '#334155' }}
+                  onClick={() => { const ch = {}; ch[s.dir] = 'rtl'; onChange(ch); }}>
+                  ← RTL עברית
+                </button>
+                <button type="button"
+                  style={{ flex: 1, padding: '5px 0', borderRadius: 6, border: '2px solid', cursor: 'pointer', fontWeight: 700, fontSize: 13, background: dir === 'ltr' ? '#4f46e5' : '#0f1117', color: dir === 'ltr' ? '#fff' : '#64748b', borderColor: dir === 'ltr' ? '#7c3aed' : '#334155' }}
+                  onClick={() => { const ch = {}; ch[s.dir] = 'ltr'; onChange(ch); }}>
+                  ספרדית LTR →
+                </button>
+              </div>
               <div style={{ fontSize: 11, color: '#64748b', marginTop: 10, marginBottom: 4 }}>תמונה</div>
               <ImagePicker gameId={gameId} authFetch={authFetch} value={block[s.img] || ''} onChange={v => { const ch = {}; ch[s.img] = v; onChange(ch); }} />
             </div>
