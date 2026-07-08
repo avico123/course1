@@ -199,6 +199,8 @@ function sectionsToBlocks(sections = []) {
           type: 'flip-card', id,
           frontText: extractDeltaText(fm.text) || '', frontImage: fm.backgroundMedia?.url || '', _rawFront: fm,
           backText:  extractDeltaText(bm.text) || '', backImage:  bm.backgroundMedia?.url || '', _rawBack:  bm,
+          cardHeight: sec.cardHeight || 400,
+          cardWidth:  sec.cardWidth  || 100,
         };
       }
 
@@ -251,7 +253,7 @@ function blockToSection(block) {
       if (block.frontImage) fm.backgroundMedia = { ...(fm.backgroundMedia || {}), url: block.frontImage };
       const bm = { ...(block._rawBack  || {}), text: block.backText  || '' };
       if (block.backImage)  bm.backgroundMedia = { ...(bm.backgroundMedia  || {}), url: block.backImage };
-      return { type: 'flipCardSection', title: deltaText(''), media: { mediaType: 'flip-card', ratio: 'landscape', frontMedia: fm, backMedia: bm } };
+      return { type: 'flipCardSection', title: deltaText(''), cardHeight: block.cardHeight || 400, cardWidth: block.cardWidth || 100, media: { mediaType: 'flip-card', ratio: 'landscape', frontMedia: fm, backMedia: bm } };
     }
     case 'multiple-choice':
       return {

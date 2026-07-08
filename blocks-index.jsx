@@ -296,31 +296,54 @@ const FLIP_SIDES = [
 ];
 
 export function FlipCardBlock({ block, isEditing, onChange, gameId, authFetch }) {
+  const cardHeight = block.cardHeight || 400;
+  const cardWidth  = block.cardWidth  || 100; // percent
+
   if (!isEditing) return (
-    <div style={{ display: 'flex', gap: 12 }}>
+    <div style={{ display: 'flex', gap: 12, width: `${cardWidth}%` }}>
       {FLIP_SIDES.map(s => (
-        <div key={s.t} style={{ flex: 1, background: '#1a2235', borderRadius: 8, padding: 16, minHeight: 80, color: '#e2e8f0', fontSize: 14, textAlign: 'center' }}>
+        <div key={s.t} style={{ flex: 1, background: '#1a2235', borderRadius: 8, padding: 16, minHeight: cardHeight, color: '#e2e8f0', fontSize: 14, textAlign: 'center' }}>
           <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>{s.name}</div>
-          {block[s.img] && <img src={block[s.img]} alt="" style={{ maxWidth: '100%', maxHeight: 80, borderRadius: 4, marginBottom: 6, objectFit: 'cover' }} />}
+          {block[s.img] && <img src={block[s.img]} alt="" style={{ maxWidth: '100%', maxHeight: cardHeight * 0.5, borderRadius: 4, marginBottom: 6, objectFit: 'cover' }} />}
           <div>{safeText(block[s.t])}</div>
         </div>
       ))}
     </div>
   );
   return (
-    <div style={{ display: 'flex', gap: 12 }}>
-      {FLIP_SIDES.map(s => (
-        <div key={s.t} style={{ flex: 1, background: '#1a2235', borderRadius: 8, padding: 12 }}>
-          <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6, fontWeight: 'bold' }}>{s.name}</div>
-          <textarea rows={3}
-            style={{ width: '100%', background: '#0f1117', color: '#e2e8f0', border: '1px solid #334155', borderRadius: 6, padding: 8, fontSize: 14, resize: 'vertical', boxSizing: 'border-box', direction: 'rtl' }}
-            value={safeText(block[s.t])}
-            onChange={e => { const ch = {}; ch[s.t] = e.target.value; onChange(ch); }}
-          />
-          <div style={{ fontSize: 11, color: '#64748b', marginTop: 10, marginBottom: 4 }}>תמונה</div>
-          <ImagePicker gameId={gameId} authFetch={authFetch} value={block[s.img] || ''} onChange={v => { const ch = {}; ch[s.img] = v; onChange(ch); }} />
+    <div>
+      {/* Size controls */}
+      <div style={{ display: 'flex', gap: 16, marginBottom: 12, alignItems: 'center', background: '#0f1117', borderRadius: 8, padding: '8px 12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ ...label, marginBottom: 0 }}>גובה (px)</span>
+          <input type="number" min={100} max={800} step={50}
+            style={{ ...inp, width: 80 }}
+            value={cardHeight}
+            onChange={e => onChange({ cardHeight: Number(e.target.value) })} />
         </div>
-      ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ ...label, marginBottom: 0 }}>רוחב (%)</span>
+          <input type="number" min={20} max={100} step={5}
+            style={{ ...inp, width: 70 }}
+            value={cardWidth}
+            onChange={e => onChange({ cardWidth: Number(e.target.value) })} />
+        </div>
+      </div>
+      {/* Front / Back editors */}
+      <div style={{ display: 'flex', gap: 12 }}>
+        {FLIP_SIDES.map(s => (
+          <div key={s.t} style={{ flex: 1, background: '#1a2235', borderRadius: 8, padding: 12 }}>
+            <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6, fontWeight: 'bold' }}>{s.name}</div>
+            <textarea rows={4}
+              style={{ width: '100%', background: '#0f1117', color: '#e2e8f0', border: '1px solid #334155', borderRadius: 6, padding: 8, fontSize: 14, resize: 'vertical', boxSizing: 'border-box', direction: 'rtl' }}
+              value={safeText(block[s.t])}
+              onChange={e => { const ch = {}; ch[s.t] = e.target.value; onChange(ch); }}
+            />
+            <div style={{ fontSize: 11, color: '#64748b', marginTop: 10, marginBottom: 4 }}>תמונה</div>
+            <ImagePicker gameId={gameId} authFetch={authFetch} value={block[s.img] || ''} onChange={v => { const ch = {}; ch[s.img] = v; onChange(ch); }} />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
