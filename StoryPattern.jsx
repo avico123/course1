@@ -5,6 +5,7 @@ import FlipCardSection from './FlipCardSection.jsx'
 import ConvoSection from './ConvoSection.jsx'
 import QuoteSection from './QuoteSection.jsx'
 import VideoCreatorSection from './VideoCreatorSection.jsx'
+import QuizSection from './QuizSection.jsx'
 
 const styles = {
   page: { maxWidth: 760, margin: '0 auto', padding: '0 20px 60px', overflowX: 'hidden' },
@@ -121,6 +122,7 @@ function renderSection(section, folderId, showSectionTitles) {
     case 'convoSection':     return <ConvoSection key={section.id} section={section} folderId={folderId} />
     case 'quoteSection':     return <QuoteSection key={section.id} section={section} />
     case 'videoCreatorSection': return <VideoCreatorSection key={section.id} section={section} folderId={folderId} />
+    case 'quizSection':         return <QuizSection key={section.id} section={section} folderId={folderId} />
     default:
       return (
         <div key={section.id} style={{ background: '#fff8e1', border: '1px dashed #f9a825', padding: 12, borderRadius: 6, marginBottom: 16, fontSize: 13 }}>
