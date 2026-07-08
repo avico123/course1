@@ -231,9 +231,10 @@ export function IframeBlock({ block, isEditing, onChange }) {
 // ─── TEXT ─────────────────────────────────────────────────────────────────────
 export function TextBlock({ block, isEditing, onChange }) {
   const text = safeText(block.content);
+  const dir = textDir(text);
   if (!isEditing) return (
     <ViewWrap>
-      <p style={{ color: '#cbd5e1', lineHeight: 1.7, margin: 0, whiteSpace: 'pre-wrap', direction: 'rtl' }}>
+      <p style={{ color: '#cbd5e1', lineHeight: 1.7, margin: 0, whiteSpace: 'pre-wrap', direction: dir, textAlign: dir === 'ltr' ? 'left' : 'right' }}>
         {text || <span style={{ color: '#475569', fontStyle: 'italic' }}>טקסט ריק</span>}
       </p>
     </ViewWrap>
@@ -251,9 +252,10 @@ export function HeaderBlock({ block, isEditing, onChange }) {
   const sizes = { 1: 32, 2: 26, 3: 20 };
   const sz = sizes[block.level] || 26;
   const text = safeText(block.content);
+  const dir = textDir(text);
   if (!isEditing) return (
     <ViewWrap>
-      <div style={{ fontSize: sz, fontWeight: 700, color: '#f1f5f9', direction: 'rtl', lineHeight: 1.3 }}>{text || 'כותרת'}</div>
+      <div style={{ fontSize: sz, fontWeight: 700, color: '#f1f5f9', direction: dir, textAlign: dir === 'ltr' ? 'left' : 'right', lineHeight: 1.3 }}>{text || 'כותרת'}</div>
     </ViewWrap>
   );
   return (
