@@ -183,7 +183,7 @@ function sectionsToBlocks(sections = []) {
         if (mt === 'youtube') return { type: 'youtube', id, videoId: media.videoId || '', start: media.videoStart || 0 };
         if (mt === 'video')   return { type: 'video',   id, url: media.originalVideoUrl || media.url || '', poster: '' };
         if (mt === 'iframe')  return { type: 'iframe',  id, url: media.url || '', height: 400 };
-        return { type: 'image', id, url: media.url || media.originalImageUrl || '', alt: '', caption: extractDeltaText(sec.title) };
+        return { type: 'image', id, url: media.url || media.originalImageUrl || '', alt: media.alt || '', caption: extractDeltaText(sec.description) || extractDeltaText(sec.title) };
 
       case 'triviaSection':
         return {
@@ -213,7 +213,7 @@ function sectionsToBlocks(sections = []) {
 
       default:
         // Legacy format keyed by media.mediaType
-        if (mt === 'image')     return { type: 'image',   id, url: media.url || media.originalImageUrl || '', alt: '', caption: extractDeltaText(sec.title) };
+        if (mt === 'image')     return { type: 'image',   id, url: media.url || media.originalImageUrl || '', alt: media.alt || '', caption: extractDeltaText(sec.description) || extractDeltaText(sec.title) };
         if (mt === 'youtube')   return { type: 'youtube', id, videoId: media.videoId || '', start: media.videoStart || 0 };
         if (mt === 'video')     return { type: 'video',   id, url: media.originalVideoUrl || '', poster: '' };
         if (mt === 'iframe')    return { type: 'iframe',  id, url: media.url || '', height: 400 };
@@ -235,7 +235,7 @@ function sectionsToBlocks(sections = []) {
 function blockToSection(block) {
   switch (block.type) {
     case 'image':
-      return { type: 'mediaSection', title: deltaText(block.caption || ''), media: { mediaType: 'image', url: block.url, originalImageUrl: block.url, alt: block.alt || '' } };
+      return { type: 'mediaSection', title: deltaText(''), description: deltaText(block.caption || ''), media: { mediaType: 'image', url: block.url, originalImageUrl: block.url, alt: block.alt || '' } };
     case 'youtube':
       return { type: 'mediaSection', title: deltaText(''), media: { mediaType: 'youtube', videoId: block.videoId, videoStart: block.start || 0 } };
     case 'video':
